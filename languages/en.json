@@ -1,0 +1,12 @@
+{
+	"TITLE_APP":"EyeSeeTea Dhis2 Server Utils",
+	"COMP_SCORE_TITLE":"Composite Score Update",
+	"START_DATE":"Start Date",
+	"END_DATE":"End Date",
+	"PROGRAM_UID":"Program UID",
+	"SUBMIT": "Submit",
+	"VALIDATION_PROGRAM_UID": "Program UID required",
+	"VALIDATION_START_DATE": "Start Date required",
+	"VALIDATION_END_DATE": "End Date required"
+	
+}

@@ -1,0 +1,71 @@
+<!--   
+   Copyright (c) 2015.
+ 
+   This file is part of Project Manager.
+ 
+   Project Manager is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+ 
+   Project Manager is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+ 
+   You should have received a copy of the GNU General Public License
+   along with Project Manager.  If not, see <http://www.gnu.org/licenses/>. -->
+
+<h2>{{'COMP_SCORE_TITLE' | translate}}</h2>
+
+<form name="form" ng-submit="form.$valid && submit()" ng-controller="compScoreController" novalidate>
+
+    <div class="row" ng-show="form.$submitted">
+    	
+	  	<div class="col-md-12">
+			<d2-messages type="danger" ng-show="form.program_uid.$error.required" textmessage="{{ 'VALIDATION_PROGRAM_UID' | translate }}"></d2-messages>
+			<d2-messages type="danger" ng-show="form.start_date.$error.required" textmessage="{{ 'VALIDATION_START_DATE' | translate }}"></d2-messages>
+			<d2-messages type="danger" ng-show="form.end_date.$error.required" textmessage="{{ 'VALIDATION_END_DATE' | translate }}"></d2-messages>
+		</div>
+	</div>
+
+
+	<div class="row">
+	<div class="col-md-6">
+		<label for="program_uid">{{'PROGRAM_UID' | translate}}</label>
+	     <p class="input-group">
+            <input type="text" ng-model="program_uid" name="program_uid" class="form-control" ng-required="true" close-text="Close" />
+          </p>
+	</div>
+	</div>
+	<br/>
+	<div class="row">
+	<div class="col-md-3">
+		<label for="start_date">{{'START_DATE' | translate}}</label>
+	     <p class="input-group">
+            <input type="text" class="form-control" datepicker-popup="dd/MM/yyyy" ng-model="start_date" name="start_date" is-open="openedstart" min-date="minDate"  datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="true" close-text="Close" />
+            <span class="input-group-btn">
+              <button type="button" class="btn btn-default" ng-click="openstart($event)"><i class="glyphicon glyphicon-calendar"></i></button>
+            </span>
+          </p>
+	</div>
+	<div class="col-md-3">
+		<label for="end_date">{{'END_DATE' | translate}}</label>
+	     <p class="input-group">
+            <input type="text" class="form-control" datepicker-popup="dd/MM/yyyy" ng-model="end_date" name="end_date" is-open="openedend" min-date="minDate" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="true" close-text="Close" />
+            <span class="input-group-btn">
+              <button type="button" class="btn btn-default" ng-click="openend($event)"><i class="glyphicon glyphicon-calendar"></i></button>
+            </span>
+          </p>
+	</div>
+	</div>
+	<br/>
+	<div ng-show="progressbarDisplayed">
+	<d2-progressBar></d2-progressBar>
+	</div>
+	<br/>
+	<div class="form_group">	
+		<button type="submit" id="submit" class="btn btn-primary">{{ 'SUBMIT' | translate }}</button>						
+	</div>
+	
+</form>
