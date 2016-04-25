@@ -26,15 +26,16 @@
 			<d2-messages type="danger" ng-show="form.program_uid.$error.required" textmessage="{{ 'VALIDATION_PROGRAM_UID' | translate }}"></d2-messages>
 			<d2-messages type="danger" ng-show="form.start_date.$error.required" textmessage="{{ 'VALIDATION_START_DATE' | translate }}"></d2-messages>
 			<d2-messages type="danger" ng-show="form.end_date.$error.required" textmessage="{{ 'VALIDATION_END_DATE' | translate }}"></d2-messages>
+			<d2-messages type="danger" ng-show="invalidProgram" textmessage="{{ 'INVALID_PROGRAM' | translate }}"></d2-messages> 
+			<d2-messages type="danger" ng-show="unexpectedError" textmessage="{{ 'UNEXPECTED_ERROR' | translate }}"></d2-messages> 
 		</div>
 	</div>
-
 
 	<div class="row">
 	<div class="col-md-6">
 		<label for="program_uid">{{'PROGRAM_UID' | translate}}</label>
 	     <p class="input-group">
-            <input type="text" ng-model="program_uid" name="program_uid" class="form-control" ng-required="true" close-text="Close" />
+            <input type="text" ng-model="program_uid" name="program_uid" class="form-control" ng-required="false" close-text="Close" />
           </p>
 	</div>
 	</div>
@@ -43,7 +44,7 @@
 	<div class="col-md-3">
 		<label for="start_date">{{'START_DATE' | translate}}</label>
 	     <p class="input-group">
-            <input type="text" class="form-control" datepicker-popup="dd/MM/yyyy" ng-model="start_date" name="start_date" is-open="openedstart" min-date="minDate"  datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="true" close-text="Close" />
+            <input type="text" class="form-control" datepicker-popup="dd/MM/yyyy" ng-model="start_date" name="start_date" is-open="openedstart" min-date="minDate"  datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="true" close-text="Close" ng-init="start_date='2015/01/01'" />
             <span class="input-group-btn">
               <button type="button" class="btn btn-default" ng-click="openstart($event)"><i class="glyphicon glyphicon-calendar"></i></button>
             </span>
@@ -52,7 +53,7 @@
 	<div class="col-md-3">
 		<label for="end_date">{{'END_DATE' | translate}}</label>
 	     <p class="input-group">
-            <input type="text" class="form-control" datepicker-popup="dd/MM/yyyy" ng-model="end_date" name="end_date" is-open="openedend" min-date="minDate" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="true" close-text="Close" />
+            <input type="text" class="form-control" datepicker-popup="dd/MM/yyyy" ng-model="end_date" name="end_date" is-open="openedend" min-date="minDate" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="true" close-text="Close" ng-init="end_date='2016/01/01'"/>
             <span class="input-group-btn">
               <button type="button" class="btn btn-default" ng-click="openend($event)"><i class="glyphicon glyphicon-calendar"></i></button>
             </span>
@@ -67,5 +68,4 @@
 	<div class="form_group">	
 		<button type="submit" id="submit" class="btn btn-primary">{{ 'SUBMIT' | translate }}</button>						
 	</div>
-	
 </form>
