@@ -179,7 +179,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 					}
 					if(newElement.isCompositeScore==true){
-						if(data.attributeValues==SERVER_COMPOSITESCORE_UID){
+						if(data.attributeValues[i].attribute.id==SERVER_COMPOSITESCORE_UID){
 							newElement.hierarchy=data.attributeValues[i].value;
 						}
 					}
@@ -222,12 +222,13 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					resultDataElement=DataElementAttributes.get({uid:dataElementsUids[i]});	
 					resultDataElement.$promise.then(function(data) {
 					console.log("Pulling dataelements retrieving data...");
-					console.log(data);
 					donwloadedDataElements++;
 					console.log(donwloadedDataElements+ " de "+dataElementsUids.length);
 					saveDataElement(data);
 					if(dataElementsUids.length<=donwloadedDataElements){
+						console.log("Questions:");
 						console.log(dataElements);
+						console.log("compositeScores");
 						console.log(compositeScores);
 						console.log("All dataElements was saved");
 						$scope.progressbarDisplayed = false;
