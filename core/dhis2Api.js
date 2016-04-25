@@ -6,8 +6,8 @@
  * */
 var Dhis2Api = angular.module("Dhis2Api", ['ngResource']);
 
-var urlApi = "http://localhost:8080/api/";
-var urlBase = "http://localhost:8080/";
+var urlApi = "http://192.168.55.101:8080/api/";
+var urlBase = "http://192.168.55.101:8080/";
 
 //Create all common variables of the apps 
 Dhis2Api.factory("commonvariable", function () {
@@ -40,9 +40,35 @@ Dhis2Api.factory("TreeOrganisationunit",['$resource','commonvariable', function 
   { get: { method: "GET"} });
 }]);
 
+//Returns the uid pograms list
 Dhis2Api.factory("ProgramsList",['$resource','commonvariable', function ($resource,commonvariable) {
 	return $resource( commonvariable.url+"programs.json", 
-	{},
+	{
+    fields:'id'
+	},
   { get: { method: "GET"} });
 }]);
 
+//Returns the program uid from a program uid(Used to checks if the program exists).
+Dhis2Api.factory("CheckProgram",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"programs/:uid", 
+	{
+		uid:'@uid',
+		fields:'id'
+	},
+  { get: { method: "GET"} });
+}]);
+
+//Returns the events uid in a program
+Dhis2Api.factory("EventsByProgram",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"events.json?program=:program", 
+	{
+		program:'@program',
+		startDate:'@startDate',
+		endDate:'@endDate',
+		totalPages:'true',
+		pageSize:'75',
+		page:'@page'
+	},
+  { get: { method: "GET"} });
+}]);
