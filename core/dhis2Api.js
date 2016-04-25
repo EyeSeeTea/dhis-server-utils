@@ -72,3 +72,13 @@ Dhis2Api.factory("EventsByProgram",['$resource','commonvariable', function ($res
 	},
   { get: { method: "GET"} });
 }]);
+
+//Returns the attributes from a dataElement
+Dhis2Api.factory("DataElementAttributes",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"dataElements/:uid.json?", 
+	{
+		uid:'@uid',
+		fields:'[id,attributeValues]'
+	},
+  { get: { method: "GET"} });
+}]);
