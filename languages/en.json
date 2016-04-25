@@ -9,6 +9,7 @@
 	"VALIDATION_START_DATE": "Start Date required",
 	"VALIDATION_END_DATE": "End Date required",
 	"INVALID_PROGRAM": "The program is not valid",
-	"UNEXPECTED_ERROR": "Unexpected error"
+	"UNEXPECTED_ERROR": "Unexpected error",
+	"LOGIN_ERROR": "Error. Are you logged?"
 	
 }
