@@ -44,17 +44,17 @@ Dhis2Api.factory("TreeOrganisationunit",['$resource','commonvariable', function 
 Dhis2Api.factory("ProgramsList",['$resource','commonvariable', function ($resource,commonvariable) {
 	return $resource( commonvariable.url+"programs.json", 
 	{
-    fields:'id'
+		fields:'id,programStages[id]'
 	},
   { get: { method: "GET"} });
 }]);
 
 //Returns the program uid from a program uid(Used to checks if the program exists).
 Dhis2Api.factory("CheckProgram",['$resource','commonvariable', function ($resource,commonvariable) {
-	return $resource( commonvariable.url+"programs/:uid", 
+	return $resource( commonvariable.url+"programs/:uid.json", 
 	{
 		uid:'@uid',
-		fields:'id'
+		fields:'id,programStages[id]'
 	},
   { get: { method: "GET"} });
 }]);
@@ -68,6 +68,7 @@ Dhis2Api.factory("EventsByProgram",['$resource','commonvariable', function ($res
 		endDate:'@endDate',
 		totalPages:'true',
 		pageSize:'75',
+		skipMeta:'true',
 		page:'@page'
 	},
   { get: { method: "GET"} });
@@ -79,6 +80,69 @@ Dhis2Api.factory("DataElementAttributes",['$resource','commonvariable', function
 	{
 		uid:'@uid',
 		fields:'[id,attributeValues]'
+	},
+  { get: { method: "GET"} });
+}]);
+
+
+//Returns the program dataelements
+Dhis2Api.factory("DataElementsByProgram",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"dataElements.json?", 
+	{
+		program:'@program',
+		page:'@page',
+		pageSize:'500',
+		fields:'[id,attributeValues]'
+	},
+  { get: { method: "GET"} });
+}]);
+
+//Returns the program programstage
+Dhis2Api.factory("ProgramStageByProgram",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"programs/:program.json?", 
+	{
+		program:'@program',
+		fields:'[programStages]'
+	},
+  { get: { method: "GET"} });
+}]);
+
+//Returns the programstage programStageDataElements
+Dhis2Api.factory("ProgramStageDataElementsByProgramStage",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"programStages/:programStage.json?", 
+	{
+		programStage:'@programStage',
+		fields:'id,programStageDataElements[id]'
+	},
+  { get: { method: "GET"} });
+}]);
+
+//Returns the programStageDataElements DataElements
+Dhis2Api.factory("DataElementsByProgramStageDataElements",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"programStageDataElements/:programStageDataElement.json?", 
+	{
+		programStageDataElement:'@programStageDataElement',
+		fields:'id,dataElement[id,attributeValues,optionSet]'
+	},
+  { get: { method: "GET"} });
+}]);
+
+//Returns the options from optionUid DataElements
+Dhis2Api.factory("OptionsByOptionUid",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"optionSets/:optionSet.json?", 
+	{
+		optionSet:'@optionSet',
+		fields:'[id,options]'
+	},
+  { get: { method: "GET"} });
+}]);
+
+//Returns the optionsSets
+Dhis2Api.factory("OptionsSets",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"optionSets/", 
+	{
+		fields:'[:all,!created,!lastUpdated,!href,!publicAccess,!displayName,!version,!externalAccess,!access,!userGroupAccesses,!user]',
+		paging:'false'
 	},
   { get: { method: "GET"} });
 }]);
