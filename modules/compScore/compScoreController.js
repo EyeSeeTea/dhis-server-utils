@@ -16,7 +16,7 @@
    You should have received a copy of the GNU General Public License
    along with Project Manager.  If not, see <http://www.gnu.org/licenses/>. */
 
-dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "commonvariable", '$timeout', 'ProgramsList', 'CheckProgram', 'EventsByProgram', 'ProgramStageDataElementsByProgramStage', 'DataElementsByProgramStageDataElements', 'OptionsSets', 'PatchEvent', function($scope, $filter, commonvariable, $timeout, ProgramsList, CheckProgram, EventsByProgram, ProgramStageDataElementsByProgramStage, DataElementsByProgramStageDataElements, OptionsSets, PatchEvent) {
+dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "commonvariable", '$timeout', 'ProgramsList', 'CheckProgram', 'EventsByProgram', 'ProgramStageDataElementsByProgramStage', 'DataElementsByProgramStageDataElements', 'PatchEvent', function($scope, $filter, commonvariable, $timeout, ProgramsList, CheckProgram, EventsByProgram, ProgramStageDataElementsByProgramStage, DataElementsByProgramStageDataElements, PatchEvent) {
 
 
 	var $translate = $filter('translate');
@@ -71,8 +71,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				var events;
 				//list of programs
 				var programs=[];
-				//List of optionsets
-				var optionSets;
 				
 				//Count variables to control when finish the async calls. 
 				var totalEvents=0;
@@ -114,13 +112,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				},function(){$scope.invalidProgram=true;});
 				
 				function downloadProgram(program){
-					resultOptionSet=OptionsSets.get();	
-					resultOptionSet.$promise.then(function(data) {
-						optionSets=data;
-						console.log(optionSets);
-						downloadMetadataByProgram(program);
-						downloadEventsByProgram(program.id,start_date,end_date);
-					},function(){$scope.unexpectedError=true;});
+					downloadMetadataByProgram(program);
+					downloadEventsByProgram(program.id,start_date,end_date);
 				}
 
 				//Retrireve all programs metadata
@@ -374,25 +367,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 				return question;
 			}
-						
-			function getOptionSetById(optionSetUid){
-				var optionSet=undefined;
-				for(var i=0;i<optionSets.optionSets.length;i++){
-					if(optionSets.optionSets[i].id==optionSetUid)
-						return optionSets.optionSets[i];
-				}
-				return optionSet;
-			}
 
-						
-			function getOptionSetByName(optionSetName){
-				var optionSet=undefined;
-				for(var i=0;i<optionSets.optionSets.length;i++){
-					if(optionSets.optionSets[i].name==optionSetName)
-						return optionSets.optionSets[i];
-				}
-				return optionSet;
-			}
 			function getCompositeParent(hierarchyParent){
 				var compositeScores;
 				for(var i=0;i<programs.length;i++){
@@ -581,17 +556,17 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					for(var d=0;d<programs.length;d++){
 						if(programs[d].id==events[i].program){
 							//get a copy of the compositeScore including the denominator
-
 							var compositeScores=programs[d].programStages[0].compositeScores;
 
+							console.log("Working on event cs");
 							compositeScores=addNumeratorInCS(compositeScores,events[i].dataValues);
-							console.log("Event cs");
-							console.log(compositeScores);
+
 							var compositeScoreRoot=orderCompositeScoreRoot(compositeScores,CS_ROOT);
-							console.log(compositeScoreRoot);
 							compositeScores=orderCompositeChildrens(compositeScores,compositeScoreRoot);	
+							
+							console.log("Finish event cs order");
 							console.log(compositeScores);
-							console.log("finisCs");
+							
 
 						}
 					}
@@ -731,47 +706,19 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				for(var i=0;i<events.length;i++){
 					for(var d=0;d<events[i].dataValues.length;d++){
 						var dataValue= events[i].dataValues[d];
-							var indexOfFactor=dataValue.value.indexOf("[");
-							var endOfFactor=dataValue.value.lastIndexOf("]");
-							if(indexOfFactor!=-1 && endOfFactor!=-1){
-								dataValue.factor=dataValue.value.substring(indexOfFactor+1,endOfFactor);
-								var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
-								//Calculate the dataValue numerator
-								dataValue.sumFactor=question.numerator*dataValue.factor;
-								dataValue.compositeScore=question.compositeScore;
-								events[i].dataValues[d]=dataValue;
-								continue;
-							}
-							else{
-								continue;
-							}
-
-						//find the Code by valueName is not needed
-						var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
-							console.log(dataValue.value);
-						if(question==undefined){
-							console.log("question undefined");
-							//console.log(dataValue);
+						var indexOfFactor=dataValue.value.indexOf("[");
+						var endOfFactor=dataValue.value.lastIndexOf("]");
+						if(indexOfFactor!=-1 && endOfFactor!=-1){
+							dataValue.factor=dataValue.value.substring(indexOfFactor+1,endOfFactor);
+							var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
+							//Calculate the dataValue numerator
+							dataValue.sumFactor=question.numerator*dataValue.factor;
+							dataValue.compositeScore=question.compositeScore;
+							events[i].dataValues[d]=dataValue;
 							continue;
 						}
-						if(question.optionSet==undefined){
-							console.log("question without");
-							//console.log(dataValue);
+						else{
 							continue;
-						}
-						var optionSet=getOptionSetById(question.optionSet.id);
-						if(optionSet==undefined){
-							console.log("ooptionset undefined");
-							console.log(question);
-							continue;
-						}
-						for(var x=0;x<optionSet.options.length;x++){
-							if(dataValue.value==optionSet.options[x].name){
-								var indexOfFactor=optionSet.options[x].code.indexOf("[");
-								var endOfFactor=optionSet.options[x].code.lastIndexOf("]");
-								dataValue.factor=optionSet.options[x].code.substring(indexOfFactor,endOfFactor);
-								events[i].dataValues[d]=dataValue;
-							}
 						}
 					}
 				}

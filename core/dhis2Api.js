@@ -103,17 +103,6 @@ Dhis2Api.factory("DataElementsByProgramStageDataElements",['$resource','commonva
 	},
   { get: { method: "GET"} });
 }]);
-
-//Returns the optionsSets
-Dhis2Api.factory("OptionsSets",['$resource','commonvariable', function ($resource,commonvariable) {
-	return $resource( commonvariable.url+"optionSets/", 
-	{
-		fields:'[:all,!created,!lastUpdated,!href,!publicAccess,!displayName,!version,!externalAccess,!access,!userGroupAccesses,!user]',
-		paging:'false'
-	},
-  { get: { method: "GET"} });
-}]);
-
 //Patch the event DataValues using a json like a: {"dataValues":[{"dataElement":"uid","value","11"},{"dataElement":"other","value":"10"}]})
 //Is need send the events/eventuid/a dataelement uid from a one datavalue send in the request.
 Dhis2Api.factory("PatchEvent",['$resource','commonvariable', function ($resource,commonvariable) {
