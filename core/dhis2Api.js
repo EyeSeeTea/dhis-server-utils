@@ -113,3 +113,13 @@ Dhis2Api.factory("PatchEvent",['$resource','commonvariable', function ($resource
 	},
   { patch: { method: "PATCH"} });
 }]);
+
+//Returns the optionsSets
+Dhis2Api.factory("OptionsSets",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"optionSets/", 
+	{
+		fields:'[:all,!created,!lastUpdated,!href,!publicAccess,!displayName,!version,!externalAccess,!access,!userGroupAccesses,!user]',
+		paging:'false'
+	},
+  { get: { method: "GET"} });
+}]);

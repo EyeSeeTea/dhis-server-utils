@@ -16,8 +16,7 @@
    You should have received a copy of the GNU General Public License
    along with Project Manager.  If not, see <http://www.gnu.org/licenses/>. */
 
-dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "commonvariable", '$timeout', 'ProgramsList', 'CheckProgram', 'EventsByProgram', 'ProgramStageDataElementsByProgramStage', 'DataElementsByProgramStageDataElements', 'PatchEvent', function($scope, $filter, commonvariable, $timeout, ProgramsList, CheckProgram, EventsByProgram, ProgramStageDataElementsByProgramStage, DataElementsByProgramStageDataElements, PatchEvent) {
-
+dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "commonvariable", '$timeout', 'ProgramsList', 'CheckProgram', 'EventsByProgram', 'ProgramStageDataElementsByProgramStage', 'DataElementsByProgramStageDataElements', 'OptionsSets', 'PatchEvent', function($scope, $filter, commonvariable, $timeout, ProgramsList, CheckProgram, EventsByProgram, ProgramStageDataElementsByProgramStage, DataElementsByProgramStageDataElements, OptionsSets, PatchEvent) {
 
 	var $translate = $filter('translate');
 
@@ -71,6 +70,10 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				var events;
 				//list of programs
 				var programs=[];
+
+				//List of optionsets
+				var optionSets;
+				
 				
 				//Count variables to control when finish the async calls. 
 				var totalEvents=0;
@@ -110,10 +113,15 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 					}
 				},function(){$scope.invalidProgram=true;});
-				
+
 				function downloadProgram(program){
-					downloadMetadataByProgram(program);
-					downloadEventsByProgram(program.id,start_date,end_date);
+					resultOptionSet=OptionsSets.get();	
+					resultOptionSet.$promise.then(function(data) {
+						optionSets=data;
+						console.log(optionSets);
+						downloadMetadataByProgram(program);
+						downloadEventsByProgram(program.id,start_date,end_date);
+					},function(){$scope.unexpectedError=true;});
 				}
 
 				//Retrireve all programs metadata
@@ -346,7 +354,19 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 			}
 
-			//return one question by uid dataelement for a program.
+
+			//returns the optionset with the @optionsetuid
+			function getOptionSetById(optionSetUid){
+				var optionSet=undefined;
+				for(var i=0;i<optionSets.optionSets.length;i++){
+					if(optionSets.optionSets[i].id==optionSetUid)
+						return optionSets.optionSets[i];
+				}
+				return optionSet;
+			}
+
+
+			//returns the question with uid dataelement for a program.
 			function getQuestionByIdAndProgram(dataElementUid,programUid){
 				var question=undefined;
 				for(var i=0;i<programs.length;i++){
@@ -501,11 +521,13 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					if(dataValues[i].factor!=undefined){
 						var compositeScoreslength=getLengthObject(compositeScores);
 						for(var d=0;d<compositeScoreslength;d++){
-							if(dataValues[i].compositeScore==compositeScores[d].hierarchy){
-								if(compositeScores[d].numerator==undefined)
-									compositeScores[d].numerator=dataValues[i].sumFactor;
-								else
-									compositeScores[d].numerator+=dataValues[i].sumFactor;
+							if(dataValues[i].compositeScore!=undefined){
+								if(dataValues[i].compositeScore==compositeScores[d].hierarchy){
+										if(compositeScores[d].numerator==undefined)
+											compositeScores[d].numerator=dataValues[i].sumFactor;
+										else
+											compositeScores[d].numerator+=dataValues[i].sumFactor;
+									}
 							}
 						}
 					}
@@ -559,6 +581,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			function prepareDataValues(){
 				for(var i=0;i<events.length;i++){
 					for(var d=0;d<events[i].dataValues.length;d++){
+						//if the factor is in the value:
 						var dataValue= events[i].dataValues[d];
 						var indexOfFactor=dataValue.value.indexOf("[");
 						var endOfFactor=dataValue.value.lastIndexOf("]");
@@ -572,8 +595,63 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							continue;
 						}
 						else{
+							//if the value not had the factor:
+							var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
+
+							if(question==undefined){
+								console.log("question undefined");
+								//console.log(dataValue);
+								continue;
+							}
+							if(question.optionSet==undefined){
+								console.log("question without");
+								//console.log(dataValue);
+								continue;
+							}
+							var optionSet=getOptionSetById(question.optionSet.id);
+							if(optionSet==undefined){
+								console.log("ooptionset undefined");
+								console.log(question);
+								continue;
+							}
+							for(var x=0;x<optionSet.options.length;x++){
+								//if the value is a option name(normal)
+								if(optionSet.options[x].name==dataValue.value){
+								var indexOfFactor=optionSet.options[x].code.indexOf("[");
+								var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
+
+								if(indexOfFactor!=-1 && endOfFactor!=-1){
+									dataValue.factor=optionSet.options[x].code.substring(indexOfFactor+1,endOfFactor);
+									//Calculate the dataValue numerator
+									dataValue.sumFactor=question.numerator*dataValue.factor;
+									dataValue.compositeScore=question.compositeScore;
+									console.log(dataValue.value+dataValue.factor);
+									events[i].dataValues[d]=dataValue;
+									continue;
+									}
+								}
+							}
+								
+							for(var x=0;x<optionSet.options.length;x++){
+									//If the server save the value as YES [1] and the datavalue as YES
+									if(optionSet.options[x].code.indexOf(dataValue.value)!=-1){
+										var indexOfFactor=optionSet.options[x].code.indexOf("[");
+										var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
+
+										if(indexOfFactor!=-1 && endOfFactor!=-1){
+
+											dataValue.factor=optionSet.options[x].code.substring(indexOfFactor+1,endOfFactor);
+											//Calculate the dataValue numerator
+											dataValue.sumFactor=question.numerator*dataValue.factor;
+											dataValue.compositeScore=question.compositeScore;
+											events[i].dataValues[d]=dataValue;
+											console.log("fixed"+dataValue.value+dataValue.factor);
+											continue;
+										}
+								}
+							}
 							continue;
-						}
+							}
 					}
 				}
 			}
@@ -639,6 +717,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				console.log("Prepare the compositeScore events");
 				prepareEvents();
 				console.log("Update the compositeScore by Event");
+				calculateCSEvents();
 				console.log(programs);
 				console.log(events);
 				sendEvents();
