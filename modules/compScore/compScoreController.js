@@ -16,7 +16,8 @@
    You should have received a copy of the GNU General Public License
    along with Project Manager.  If not, see <http://www.gnu.org/licenses/>. */
 
-dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "commonvariable", '$timeout', 'ProgramsList', 'CheckProgram', 'EventsByProgram', 'ProgramStageDataElementsByProgramStage', 'DataElementsByProgramStageDataElements', 'OptionsSets', 'PatchEvent', function($scope, $filter, commonvariable, $timeout, ProgramsList, CheckProgram, EventsByProgram, ProgramStageDataElementsByProgramStage, DataElementsByProgramStageDataElements, OptionsSets, PatchEvent) {
+
+dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "commonvariable", '$timeout', 'ProgramsList', 'CheckProgram', 'EventsByProgram', 'ProgramStageSectionsByProgramStage', 'ProgramStageDataElementsByProgramStageSection', 'DataElementsByProgramStageDataElements', 'OptionsSets', 'PatchEvent', function($scope, $filter, commonvariable, $timeout, ProgramsList, CheckProgram, EventsByProgram, ProgramStageSectionsByProgramStage, ProgramStageDataElementsByProgramStageSection, DataElementsByProgramStageDataElements, OptionsSets, PatchEvent) {
 
 	var $translate = $filter('translate');
 
@@ -79,6 +80,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				var totalEvents=0;
 				var totalPrograms=0;
 				var programsDownloaded=0;
+
+				//all downloaded control all the asyncalls to continue after pull events and programs.
 				var allDownloaded=0;
 
 				//Call on presh submit:
@@ -114,6 +117,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					}
 				},function(){$scope.invalidProgram=true;});
 
+				//download the programs and the events and at the end of the async calls prepare and send the events with the new composite scores
 				function downloadProgram(program){
 					resultOptionSet=OptionsSets.get();	
 					resultOptionSet.$promise.then(function(data) {
@@ -124,7 +128,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					},function(){$scope.unexpectedError=true;});
 				}
 
-				//Retrireve all programs metadata
+				//Retrireve all the metadata by program. The @data contains the program and the programStagesid
 				function downloadMetadataByProgram(data){
 					allDownloaded++;
 					var program=data;
@@ -140,10 +144,26 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					}
 					//Save program in global programs variable
 					programs.push(program);
-					//continue downloading the metadata
-					downloadMetadataByProgramStage(program);					
+					//continue downloading All the metadata
+					downloadMetadataByProgramStage();					
 				}
 
+				//save the programStageDataElements in the ProgramStageSections
+				function saveProgramStageSectionDataElements(data){
+					//Save the programStageDataelements in the correct program->programStage
+					var programStageDataElements=data.programStageDataElements;
+					for(var i=0;i<programs.length;i++){
+						for(var d=0;d<programs[i].programStages.length;d++){
+							for(var y=0;y<programs[i].programStages[d].programStageSections.length;y++){
+								if(programs[i].programStages[d].programStageSections[y].id==data.id){
+									programs[i].programStages[d].programStageSections[y].programStageDataElements=(data.programStageDataElements);
+								}
+							}
+						}
+					}
+				}
+
+				//fixme not used
 				function saveProgramStageDataElements(data){
 					//Save the programStageDataelements in the correct program->programStage
 					var programStageDataElements=data.programStageDataElements;
@@ -155,18 +175,32 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 					}
 				}
-
 				function saveDataElementsFromProgramStageDataElements(data){
 					for(var i = 0; i<programs.length;i++){
 						for(var d = 0; d<programs[i].programStages.length;d++){
-							for(var x = 0; x<programs[i].programStages[d].programStageDataElements.length;x++){
-								if(programs[i].programStages[d].programStageDataElements[x].id==data.id){
-									//Save the dataelement in the same level as programStageDataElements.
-									if(programs[i].programStages[d].dataElements==undefined){
-										programs[i].programStages[d].dataElements=[];
+							for(var y = 0; y<programs[i].programStages[d].programStageSections.length;y++){
+								for(var x = 0; x<programs[i].programStages[d].programStageSections[y].programStageDataElements.length;x++){
+									if(programs[i].programStages[d].programStageSections[y].programStageDataElements[x].id==data.id){
+										//Save the dataelement in the same level as programStageDataElements.
+										if(programs[i].programStages[d].programStageSections[y].dataElements==undefined){
+											programs[i].programStages[d].programStageSections[y].dataElements=[];
+										}
+										programs[i].programStages[d].programStageSections[y].dataElements.push(data.dataElement);
 									}
-									programs[i].programStages[d].dataElements.push(data.dataElement);
 								}
+							}
+						}
+					}
+				}
+				function saveProgramStageSections(data){
+					for(var i = 0; i<programs.length;i++){
+						for(var d = 0; d<programs[i].programStages.length;d++){
+							if(programs[i].programStages[d].id==data.id){
+								//Save the dataelement in the same level as programStageDataElements.
+								if(programs[i].programStages[d].programStageSections==undefined){
+									programs[i].programStages[d].programStageSections=[];
+								}
+								programs[i].programStages[d].programStageSections=(data.programStageSections);
 							}
 						}
 					}
@@ -175,94 +209,117 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 
 				//handler
 				var resultProgramStage;
+				//async number of calls.
 				var totalProgramStages=0;
+
 				//Retrireve all programsStage metadata
 				function downloadMetadataByProgramStage(){
-					donwloadedProgramStage=0;
-					
-					//Count to control the async download
-					//the programs is async object... maybe it could be wrong.
-					for(var i=0;i<programs.length;i++){
-						totalProgramStages+=programs[i].programStages.length;
-					}
-
 					//download each programStage 
 					for(var d=0;d<programs.length;d++){
 						//programStages
 						for(var i=0;i<programs[d].programStages.length;i++){
+							totalProgramStages++;
 							//Returns the programStageDataElements from the ProgramStages
-							resultProgramStage=ProgramStageDataElementsByProgramStage.get({programStage:programs[d].programStages[i].id});	
+							resultProgramStage=ProgramStageSectionsByProgramStage.get({programStage:programs[d].programStages[i].id});	
 							resultProgramStage.$promise.then(function(data) {
 								//save the dataelements in the program/programstages/questions /program/programstages/compositeScores
-								saveProgramStageDataElements(data);
-								donwloadedProgramStage++;
-								console.log("TotalProgramStages: "+totalProgramStages +" Downloaded program stages: " +donwloadedProgramStage );
-								if(totalProgramStages<=donwloadedProgramStage){
-									downloadMetadataByProgramStageDataElement();
+								saveProgramStageSections(data);
+								totalProgramStages--;
+								if(totalProgramStages==0){
+									console.log(programs);
+									downloadMetadataByProgramStageSection();
 			 					}
 							},function(){$scope.unexpectedError=true;});
 						}					
 					}
 
 				}
-
-				var totalProgramStagesDataElements=0;
-				//Retrieve all programStageDataElements metadata
-				function downloadMetadataByProgramStageDataElement(){
-
-					//Count to control the async download
-					//the programs is async object... maybe it could be wrong.
-					for(var i=0;i<programs.length;i++){
-						for(var d=0;d<programs[i].programStages.length;d++){
-							totalProgramStagesDataElements+=programs[i].programStages[d].programStageDataElements.length;
-						}
+				//handler
+				//the program stage section represents the tabgroup
+				var resultProgramStageSection;
+				//async number of calls.
+				var totalProgramStagesSections=0;
+				//Retrireve all programsStage metadata
+				function downloadMetadataByProgramStageSection(){
+					//download each programStage 
+					for(var d=0;d<programs.length;d++){
+						//programStages
+						for(var i=0;i<programs[d].programStages.length;i++){
+							//Returns the programStageDataElements from the ProgramStagesSection
+							for(var y=0;y<programs[d].programStages[d].programStageSections.length;y++){
+								totalProgramStagesSections++;
+								resultProgramStageSection=ProgramStageDataElementsByProgramStageSection.get({programStageSection:programs[d].programStages[i].programStageSections[y].id});	
+								resultProgramStageSection.$promise.then(function(data) {
+									//save the dataelements in the program/programstages/questions /program/programstages/compositeScores
+									saveProgramStageSectionDataElements(data);
+									totalProgramStagesSections--;
+									if(totalProgramStagesSections==0){
+										console.log("program stages sections donwloaded");
+										console.log(programs);
+										downloadMetadataByProgramStageDataElement();
+				 					}
+								},function(){$scope.unexpectedError=true;});
+							}
+						}					
 					}
 
+				}
 
-					downloadedProgramStageDataElement=0;
+				var controlProgramStageDataelementsDownloaded=0;
+				//Retrieve all programStageDataElements metadata
+				function downloadMetadataByProgramStageDataElement(){
 					for(var i=0;i<programs.length;i++){
 						for(var d=0;d<programs[i].programStages.length;d++){
-							for(var x=0;x<programs[i].programStages[d].programStageDataElements.length;x++){
+							for(var x=0;x<programs[i].programStages[d].programStageSections.length;x++){
+								for(var y=0;y<programs[i].programStages[d].programStageSections[x].programStageDataElements.length;y++){
+								//Count to control the async download
+								//the programs is async object... maybe it could be wrong.
+								controlProgramStageDataelementsDownloaded++;
+
+
 								//Returns the DataElements from the ProgramStageDataElements
 								//Fixme: we need add delay here or something;
 								console.log("Downloading programStagesDataElements");
-								resultProgramStageDataElement=DataElementsByProgramStageDataElements.get({programStageDataElement:programs[i].programStages[d].programStageDataElements[x].id});	
+								resultProgramStageDataElement=DataElementsByProgramStageDataElements.get({programStageDataElement:programs[i].programStages[d].programStageSections[x].programStageDataElements[y].id});	
 								resultProgramStageDataElement.$promise.then(function(data) {
-								saveDataElementsFromProgramStageDataElements(data);
-								downloadedProgramStageDataElement++;
-								if(totalProgramStagesDataElements<=downloadedProgramStageDataElement){
-									console.log("Finish DataElements from programStageDataElement");
-									saveDataElements();
-
-									allDownloaded--;
-									if(allDownloaded==0){
-										preparePrograms();
-									}
-			 					}
-								},function(){$scope.unexpectedError=true;});
+									saveDataElementsFromProgramStageDataElements(data);
+									controlProgramStageDataelementsDownloaded--;
+									if(controlProgramStageDataelementsDownloaded==0){
+										console.log("Finish DataElements from programStageDataElement");
+										buildAllDataElements();
+										controlProgramStageDataelementsDownloaded;
+										allDownloaded--;
+										if(allDownloaded==0){
+											preparePrograms();
+										}
+				 					}
+									},function(){$scope.unexpectedError=true;});
+								}
 							}
 						}
 					}
 				}
 				
 			//Save the dataelement as question or composite score for each program/programstage.
-			function saveDataElements(){
+			function buildAllDataElements(){
 				for(var i = 0; i<programs.length;i++){
 					for(var d = 0; d<programs[i].programStages.length;d++){
-						for(var x = 0; x<programs[i].programStages[d].dataElements.length;x++){
-							var dataElement=buildDataElement(programs[i].programStages[d].dataElements[x]);
-							if(dataElement!=undefined){
-								if(dataElement.type==QUESTION){
-									if(programs[i].programStages[d].questions==undefined){
-										programs[i].programStages[d].questions=[];
+						for(var y = 0; y<programs[i].programStages[d].programStageSections.length;y++){
+							for(var x = 0; x<programs[i].programStages[d].programStageSections[y].dataElements.length;x++){
+								var dataElement=buildDataElement(programs[i].programStages[d].programStageSections[y].dataElements[x]);
+								if(dataElement!=undefined){
+									if(dataElement.type==QUESTION){
+										if(programs[i].programStages[d].programStageSections[y].questions==undefined){
+											programs[i].programStages[d].programStageSections[y].questions=[];
+										}
+										programs[i].programStages[d].programStageSections[y].questions.push(dataElement);
 									}
-									programs[i].programStages[d].questions.push(dataElement);
-								}
-								else if(dataElement.type==COMPOSITE_SCORE){
-									if(programs[i].programStages[d].compositeScores==undefined){
-										programs[i].programStages[d].compositeScores=[];
+									else if(dataElement.type==COMPOSITE_SCORE){
+										if(programs[i].programStages[d].programStageSections[y].compositeScores==undefined){
+											programs[i].programStages[d].programStageSections[y].compositeScores=[];
+										}
+										programs[i].programStages[d].programStageSections[y].compositeScores.push(dataElement);
 									}
-									programs[i].programStages[d].compositeScores.push(dataElement);
 								}
 							}
 						}
@@ -372,11 +429,15 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				for(var i=0;i<programs.length;i++){
 					if(programs[i].id==programUid){
 						for(var d=0;d<programs[i].programStages.length;d++){
-							for(var x=0;x<programs[i].programStages[d].questions.length;x++){
-								if(programs[i].programStages[d].questions[x].uid==dataElementUid){
-									return programs[i].programStages[d].questions[x];
+							for(var y=0;y<programs[i].programStages[d].programStageSections.length;y++){
+								if(programs[i].programStages[d].programStageSections[y].questions!=undefined){
+									for(var x=0;x<programs[i].programStages[d].programStageSections[y].questions.length;x++){
+										if(programs[i].programStages[d].programStageSections[y].questions[x].uid==dataElementUid){
+											return programs[i].programStages[d].programStageSections[y].questions[x];
+										}
+									}		
 								}
-							}		
+							}
 						}			
 					}
 				}
@@ -501,16 +562,16 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							compositeScoresEvent=$.extend(true,{},programs[d].programStages[0].compositeScores);
 							console.log(compositeScoresEvent);
 							compositeScoresScored=addNumeratorInCS(compositeScoresEvent,events[i].dataValues);
-							compositeScoreRoot=orderCompositeScoreRoot(compositeScoresScored,CS_ROOT);
-							compositeScoresOrdered=orderCompositeChildrens(compositeScoresScored,compositeScoreRoot);	
-							events[i].compositeScoresOrdered=compositeScoresOrdered;
+							//compositeScoreRoot=orderCompositeScoreRoot(compositeScoresScored,CS_ROOT);
+							//compositeScoresOrdered=orderCompositeChildrens(compositeScoresScored,compositeScoreRoot);	
+							//events[i].compositeScoresOrdered=compositeScoresOrdered;
 							console.log("Finish event cs order");
 							
-							console.log(compositeScoresScored);
-							console.log(compositeScoresOrdered);
+							//console.log(compositeScoresScored);
+							//console.log(compositeScoresOrdered);
 							continue;
 						}
-					}
+					}console.log(programs);
 				}
 			}
 
@@ -542,32 +603,38 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			for(var i=0;i<programs.length;i++){
 				var cuatrouno=0;
 					for(var d=0;d<programs[i].programStages.length;d++){
-						for(var y=0;y<programs[i].programStages[d].questions.length;y++){
-							var question=programs[i].programStages[d].questions[y]; 
-							if(question.denominator!=undefined){
-								//search the question compositeScore if is a computable question.
-								for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
-									if(programs[i].programStages[d].questions[y].compositeScore==undefined){
-										console.log("question without compositescore");
-										console.log(programs[i].programStages[d].questions[y])
-										continue;
-									}
-									var localHierarchy=programs[i].programStages[d].questions[y].compositeScore.split(CS_TOKEN);
-									if(programs[i].programStages[d].compositeScores[x]==undefined){
-										console.log("cs undefined" + x);
-										console.log(programs[i].programStages[d].questions[y]);
-										continue;
-									}
-									var localCompositeScore=programs[i].programStages[d].compositeScores[x].hierarchy;
-									if(localCompositeScore==question.compositeScore){
-										if(programs[i].programStages[d].compositeScores[x].denominator==undefined){
-											//To cast a string to number is necesary add +
-											programs[i].programStages[d].compositeScores[x].denominator=(+question.denominator);
+						for(var v=0;v<programs[i].programStages[d].programStageSections.length;v++){
+							if(programs[i].programStages[d].programStageSections[v].questions!=undefined){
+								for(var y=0;y<programs[i].programStages[d].programStageSections[v].questions.length;y++){
+									var question=programs[i].programStages[d].programStageSections[v].questions[y]; 
+									if(question.denominator!=undefined){
+										//search the question compositeScore if is a computable question.
+										if(programs[i].programStages[d].programStageSections[v].compositeScores!=undefined){
+											for(var x=0;x<programs[i].programStages[d].programStageSections[v].compositeScores.length;x++){
+												if(programs[i].programStages[d].programStageSections[v].questions[y].compositeScore==undefined){
+													console.log("question without compositescore");
+													console.log(programs[i].programStages[d].programStageSections[v].questions[y])
+													continue;
+												}
+												var localHierarchy=programs[i].programStages[d].programStageSections[v].questions[y].compositeScore.split(CS_TOKEN);
+												if(programs[i].programStages[d].programStageSections[v].compositeScores[x]==undefined){
+													console.log("cs undefined" + x);
+													console.log(programs[i].programStages[d].programStageSections[v].questions[y]);
+													continue;
+												}
+												var localCompositeScore=programs[i].programStages[d].programStageSections[v].compositeScores[x].hierarchy;
+												if(localCompositeScore==question.compositeScore){
+													if(programs[i].programStages[d].programStageSections[v].compositeScores[x].denominator==undefined){
+														//To cast a string to number is necesary add +
+														programs[i].programStages[d].programStageSections[v].compositeScores[x].denominator=(+question.denominator);
+													}
+													else{
+														programs[i].programStages[d].programStageSections[v].compositeScores[x].denominator=(programs[i].programStages[d].compositeScores[x].denominator)+(+question.denominator);
+													}
+													continue;
+												}
+											}
 										}
-										else{
-											programs[i].programStages[d].compositeScores[x].denominator=(programs[i].programStages[d].compositeScores[x].denominator)+(+question.denominator);
-										}
-										continue;
 									}
 								}
 							}
@@ -585,9 +652,9 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						var dataValue= events[i].dataValues[d];
 						var indexOfFactor=dataValue.value.indexOf("[");
 						var endOfFactor=dataValue.value.lastIndexOf("]");
+						var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
 						if(indexOfFactor!=-1 && endOfFactor!=-1){
 							dataValue.factor=dataValue.value.substring(indexOfFactor+1,endOfFactor);
-							var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
 							//Calculate the dataValue numerator
 							dataValue.sumFactor=question.numerator*dataValue.factor;
 							dataValue.compositeScore=question.compositeScore;
@@ -596,8 +663,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 						else{
 							//if the value not had the factor:
-							var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
-
 							if(question==undefined){
 								console.log("question undefined");
 								//console.log(dataValue);
@@ -655,16 +720,15 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					}
 				}
 			}
-
-			var programDataelementsComplete=0;
-			var programDataelementDownloaded=0;
-						//Retrieve all events and upload it.
+			//control the asyn calls
+			var eventsByprogramsDownloaded=0;
+			//Retrieve all events and upload it.
 			function downloadEventsByProgram(program, startdate, endDate){
 				allDownloaded++;
 				var page=1;
 				var totalEvents=0;
 				var totalPage=0;
-				programsDownloaded++;
+				eventsByprogramsDownloaded++;
 				console.log("Upload Events by program");
 				console.log(program +"fecha:" +start_date+"fecha2 " + end_date + "page" + page);
 				resultEvent = EventsByProgram.get({program:program,startDate:startdate,endDate:endDate,page:page});
@@ -684,8 +748,9 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 									saveEvents(nextPageData);
 									if(events.length>=totalEvents){
 										console.log("All events was saved");
-										console.log("programs donwloaded"+programsDownloaded +" total programs"+ totalPrograms);
-										if(programsDownloaded==totalPrograms){
+										eventsByprogramsDownloaded--;
+										if(eventsByprogramsDownloaded==0){
+											//checks if the metadta and the events was downloaded;
 											allDownloaded--;
 											if(allDownloaded==0){
 												preparePrograms();
@@ -698,16 +763,49 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						else{	
 							//Only one page:
 							saveEvents(data);
-							if(events!=undefined)
-							if(events.length>=totalEvents){
-								allDownloaded--;
-								if(allDownloaded==0){
-									preparePrograms();
+							//if(events!=undefined)
+							eventsByprogramsDownloaded--;
+							if(eventsByprogramsDownloaded==0){
+								if(events.length>=totalEvents){
+									//checks if the metadta and the events was downloaded;
+									allDownloaded--;
+									if(allDownloaded==0){
+										preparePrograms();
+									}
 								}
 							}
 						}
 					},function(){$scope.invalidProgram=true;});
 			}
+
+			function getChildrenScores(){
+				
+			}
+
+			function calculateCStree(compositeScoresTree){
+				for(var i=0;i<compositeScoresTree.length;i++){
+					var scores=compositeScoresTree[i].getChildrenScores();
+					if(compositeScoresTree[i].numerator==undefined){
+						if(scores.numerator!=undefined)
+							compositeScoresTree[i].numerator=scores.numerator;
+						else
+							compositeScoresTree[i].numerator=0;
+					}
+					if(compositeScoresTree[i].denominator==undefined || compositeScoresTree[i].denominator==0){
+						console.log("the composite score not have denominator"+compositeScoresTree[i]);
+						continue;
+					}
+					compositeScoresTree[i].finalScore=(compositeScoresTree[i].numerator/compositeScoresTree[i].denominator)*100;
+					console.log("final main score:"+compositeScoresTree[i].finalScore);
+				}
+			}
+
+			function calculateCSEvents(){
+				for(var i=0;i<events.length;i++){
+					events[i].compositeScoresOrdered=calculateCStree(events[i].compositeScoresOrdered);
+				}
+			}
+
 			function preparePrograms(){
 				console.log(programs);
 				console.log(events);
@@ -717,12 +815,13 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				console.log("Prepare the compositeScore events");
 				prepareEvents();
 				console.log("Update the compositeScore by Event");
-				calculateCSEvents();
+				//calculateCSEvents();
 				console.log(programs);
 				console.log(events);
-				sendEvents();
+				//sendEvents();
 			}
-			}
+		}
+
 
 	
 }]);

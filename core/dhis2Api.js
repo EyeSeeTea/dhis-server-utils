@@ -74,7 +74,7 @@ Dhis2Api.factory("EventsByProgram",['$resource','commonvariable', function ($res
   { get: { method: "GET"} });
 }]);
 
-//Returns the program programstage
+//Returns the  programstage by program
 Dhis2Api.factory("ProgramStageByProgram",['$resource','commonvariable', function ($resource,commonvariable) {
 	return $resource( commonvariable.url+"programs/:program.json?", 
 	{
@@ -84,6 +84,38 @@ Dhis2Api.factory("ProgramStageByProgram",['$resource','commonvariable', function
   { get: { method: "GET"} });
 }]);
 
+//Returns the  programstage by program
+Dhis2Api.factory("ProgramStageSectionsByProgramStage",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"programStages/:programStage.json?", 
+	{
+		programStage:'@programStage',
+		fields:'id,programStageSections[id]'
+	},
+  { get: { method: "GET"} });
+}]);
+//not used
+//Returns the programStageDataElements by programstage
+Dhis2Api.factory("ProgramStageDataElementsByProgramStage",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"programStages/:programStage.json?", 
+	{
+		programStage:'@programStage',
+		fields:'id,programStageDataElements[id]'
+	},
+  { get: { method: "GET"} });
+}]);
+
+//Returns the  programStageSections by programstage
+Dhis2Api.factory("ProgramStageDataElementsByProgramStageSection",['$resource','commonvariable', function ($resource,commonvariable) {
+	return $resource( commonvariable.url+"programStageSections/:programStageSection.json?", 
+	{
+		programStageSection:'@programStageSection',
+		fields:'id,programStageDataElements[id]'
+	},
+  { get: { method: "GET"} });
+}]);
+
+
+//not used
 //Returns the programstage programStageDataElements
 Dhis2Api.factory("ProgramStageDataElementsByProgramStage",['$resource','commonvariable', function ($resource,commonvariable) {
 	return $resource( commonvariable.url+"programStages/:programStage.json?", 
@@ -94,6 +126,7 @@ Dhis2Api.factory("ProgramStageDataElementsByProgramStage",['$resource','commonva
   { get: { method: "GET"} });
 }]);
 
+
 //Returns the programStageDataElements DataElements
 Dhis2Api.factory("DataElementsByProgramStageDataElements",['$resource','commonvariable', function ($resource,commonvariable) {
 	return $resource( commonvariable.url+"programStageDataElements/:programStageDataElement.json?", 
@@ -103,6 +136,7 @@ Dhis2Api.factory("DataElementsByProgramStageDataElements",['$resource','commonva
 	},
   { get: { method: "GET"} });
 }]);
+
 //Patch the event DataValues using a json like a: {"dataValues":[{"dataElement":"uid","value","11"},{"dataElement":"other","value":"10"}]})
 //Is need send the events/eventuid/a dataelement uid from a one datavalue send in the request.
 Dhis2Api.factory("PatchEvent",['$resource','commonvariable', function ($resource,commonvariable) {
