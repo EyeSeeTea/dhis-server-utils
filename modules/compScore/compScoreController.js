@@ -311,14 +311,22 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 									if(dataElement.type==QUESTION){
 										if(programs[i].programStages[d].programStageSections[y].questions==undefined){
 											programs[i].programStages[d].programStageSections[y].questions=[];
+											if(programs[i].programStages[d].questions==undefined){
+												programs[i].programStages[d].questions=[];
+											}
 										}
 										programs[i].programStages[d].programStageSections[y].questions.push(dataElement);
+										programs[i].programStages[d].questions.push(programs[i].programStages[d].programStageSections[y].questions[programs[i].programStages[d].programStageSections[y].questions.length-1]);
 									}
 									else if(dataElement.type==COMPOSITE_SCORE){
 										if(programs[i].programStages[d].programStageSections[y].compositeScores==undefined){
 											programs[i].programStages[d].programStageSections[y].compositeScores=[];
+											if(programs[i].programStages[d].compositeScores==undefined){
+												programs[i].programStages[d].compositeScores=[];
+											}
 										}
 										programs[i].programStages[d].programStageSections[y].compositeScores.push(dataElement);
+										programs[i].programStages[d].compositeScores.push(programs[i].programStages[d].programStageSections[y].compositeScores[programs[i].programStages[d].programStageSections[y].compositeScores.length-1]);
 									}
 								}
 							}
@@ -424,20 +432,37 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 
 
 			//returns the question with uid dataelement for a program.
+			function getCSByIdAndProgram(dataElementUid,programUid){
+				var compositeScores=undefined;
+				for(var i=0;i<programs.length;i++){
+					if(programs[i].id==programUid){
+						for(var d=0;d<programs[i].programStages.length;d++){
+								if(programs[i].programStages[d].questions!=undefined){
+									for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
+										if(programs[i].programStages[d].compositeScores[x].uid==dataElementUid){
+											return programs[i].programStages[d].compositeScores[x];
+										}
+									}		
+								}
+						}			
+					}
+				}
+				return compositeScores;
+			}
+
+			//returns the question with uid dataelement for a program.
 			function getQuestionByIdAndProgram(dataElementUid,programUid){
 				var question=undefined;
 				for(var i=0;i<programs.length;i++){
 					if(programs[i].id==programUid){
 						for(var d=0;d<programs[i].programStages.length;d++){
-							for(var y=0;y<programs[i].programStages[d].programStageSections.length;y++){
-								if(programs[i].programStages[d].programStageSections[y].questions!=undefined){
-									for(var x=0;x<programs[i].programStages[d].programStageSections[y].questions.length;x++){
-										if(programs[i].programStages[d].programStageSections[y].questions[x].uid==dataElementUid){
-											return programs[i].programStages[d].programStageSections[y].questions[x];
+								if(programs[i].programStages[d].questions!=undefined){
+									for(var x=0;x<programs[i].programStages[d].questions.length;x++){
+										if(programs[i].programStages[d].questions[x].uid==dataElementUid){
+											return programs[i].programStages[d].questions[x];
 										}
 									}		
 								}
-							}
 						}			
 					}
 				}
@@ -603,33 +628,32 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			for(var i=0;i<programs.length;i++){
 				var cuatrouno=0;
 					for(var d=0;d<programs[i].programStages.length;d++){
-						for(var v=0;v<programs[i].programStages[d].programStageSections.length;v++){
-							if(programs[i].programStages[d].programStageSections[v].questions!=undefined){
-								for(var y=0;y<programs[i].programStages[d].programStageSections[v].questions.length;y++){
-									var question=programs[i].programStages[d].programStageSections[v].questions[y]; 
+							if(programs[i].programStages[d].questions!=undefined){
+								for(var y=0;y<programs[i].programStages[d].questions.length;y++){
+									var question=programs[i].programStages[d].questions[y]; 
 									if(question.denominator!=undefined){
 										//search the question compositeScore if is a computable question.
-										if(programs[i].programStages[d].programStageSections[v].compositeScores!=undefined){
-											for(var x=0;x<programs[i].programStages[d].programStageSections[v].compositeScores.length;x++){
-												if(programs[i].programStages[d].programStageSections[v].questions[y].compositeScore==undefined){
+										if(programs[i].programStages[d].compositeScores!=undefined){
+											for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
+												if(programs[i].programStages[d].questions[y].compositeScore==undefined){
 													console.log("question without compositescore");
-													console.log(programs[i].programStages[d].programStageSections[v].questions[y])
+													console.log(programs[i].programStages[d].questions[y])
 													continue;
 												}
-												var localHierarchy=programs[i].programStages[d].programStageSections[v].questions[y].compositeScore.split(CS_TOKEN);
-												if(programs[i].programStages[d].programStageSections[v].compositeScores[x]==undefined){
+												var localHierarchy=programs[i].programStages[d].questions[y].compositeScore.split(CS_TOKEN);
+												if(programs[i].programStages[d].compositeScores[x]==undefined){
 													console.log("cs undefined" + x);
-													console.log(programs[i].programStages[d].programStageSections[v].questions[y]);
+													console.log(programs[i].programStages[d].questions[y]);
 													continue;
 												}
-												var localCompositeScore=programs[i].programStages[d].programStageSections[v].compositeScores[x].hierarchy;
+												var localCompositeScore=programs[i].programStages[d].compositeScores[x].hierarchy;
 												if(localCompositeScore==question.compositeScore){
-													if(programs[i].programStages[d].programStageSections[v].compositeScores[x].denominator==undefined){
+													if(programs[i].programStages[d].compositeScores[x].denominator==undefined){
 														//To cast a string to number is necesary add +
-														programs[i].programStages[d].programStageSections[v].compositeScores[x].denominator=(+question.denominator);
+														programs[i].programStages[d].compositeScores[x].denominator=(+question.denominator);
 													}
 													else{
-														programs[i].programStages[d].programStageSections[v].compositeScores[x].denominator=(programs[i].programStages[d].compositeScores[x].denominator)+(+question.denominator);
+														programs[i].programStages[d].compositeScores[x].denominator=(programs[i].programStages[d].compositeScores[x].denominator)+(+question.denominator);
 													}
 													continue;
 												}
@@ -637,7 +661,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 										}
 									}
 								}
-							}
+							
 						}
 					} 
 				}
@@ -653,11 +677,21 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						var indexOfFactor=dataValue.value.indexOf("[");
 						var endOfFactor=dataValue.value.lastIndexOf("]");
 						var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
+											
 						if(indexOfFactor!=-1 && endOfFactor!=-1){
 							dataValue.factor=dataValue.value.substring(indexOfFactor+1,endOfFactor);
 							//Calculate the dataValue numerator
+							if(question==undefined){
+								console.log("question undefined");
+								console.log(dataValue);
+								continue;
+								}
 							dataValue.sumFactor=question.numerator*dataValue.factor;
 							dataValue.compositeScore=question.compositeScore;
+							if(isNaN(dataValue.sumFactor)){
+								dataValue.sumFactor=0;
+								console.log("nan factor" + dataValue);
+							}
 							events[i].dataValues[d]=dataValue;
 							continue;
 						}
@@ -691,7 +725,10 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 									dataValue.sumFactor=question.numerator*dataValue.factor;
 									dataValue.compositeScore=question.compositeScore;
 									console.log(dataValue.value+dataValue.factor);
-									events[i].dataValues[d]=dataValue;
+									if(isNaN(dataValue.sumFactor)){
+										dataValue.sumFactor=0;
+										console.log("nan factor" + dataValue);
+									}
 									continue;
 									}
 								}
@@ -709,8 +746,11 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 											//Calculate the dataValue numerator
 											dataValue.sumFactor=question.numerator*dataValue.factor;
 											dataValue.compositeScore=question.compositeScore;
+											if(isNaN(dataValue.sumFactor)){
+												dataValue.sumFactor=0;
+												console.log("nan factor" + dataValue);
+											}
 											events[i].dataValues[d]=dataValue;
-											console.log("fixed"+dataValue.value+dataValue.factor);
 											continue;
 										}
 								}
