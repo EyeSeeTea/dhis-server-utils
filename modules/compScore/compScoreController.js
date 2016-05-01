@@ -36,6 +36,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			
 			$scope.submit=function(){
 				
+				//show all the CS datavalues with numerator/denominator/score/uid/hirarchycal code.
+				var debugDatavalues=true;
 				var SERVER_ATTRIBUTE_UID="IMVz39TtAHM";
 				var COMPOSITE_SCORE="93";
 				var QUESTION="92";
@@ -519,6 +521,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			function calculateCSScores(programUid){
 				for(var i=0;i<programs.length;i++){
 					if(programs[i].id==programUid){
+						calculateCSByDepth(programUid);
 						for(var d=0;d<programs[i].programStages.length;d++){
 							if(programs[i].programStages[d].compositeScores!=undefined){
 								for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
@@ -534,9 +537,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}			
 					}
 				}
-				console.log("Calculated scores for each CS")
-				console.log(programs);
-				calculateCSByDepth(programUid);
 			}
 
 			function getLowestDepth(program){
@@ -554,6 +554,40 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					}
 				}	
 				return depth;	
+			}
+
+			function addChildrenDenominators(){
+
+				for(var i=0;i<programs.length;i++){
+					depth=getLowestDepth(programs[i]);
+
+					//Add numerator/denominator from children to parents by depth
+					for(var actualDepth=depth;actualDepth>0;actualDepth--){
+						for(var d=0;d<programs[i].programStages.length;d++){
+							if(programs[i].programStages[d].compositeScores!=undefined){
+								for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
+									var compositeScore=programs[i].programStages[d].compositeScores[x];
+									//Add the depth childrens denominator into the parent
+									if(compositeScore.depth==actualDepth){
+										if(compositeScore.denominator!=undefined){
+											if(compositeScore.parent!=undefined){
+												if(compositeScore.parent.denominator==undefined){
+													compositeScore.parent.denominator=compositeScore.denominator;
+												}
+												else{
+													console.log("p"+compositeScore.parent.hierarchy+" "+compositeScore.parent.denominator);
+													console.log("h"+compositeScore.hierarchy+" "+compositeScore.denominator);
+													compositeScore.parent.denominator+=compositeScore.denominator;
+												}
+											}
+										}
+									}
+								}		
+							}
+						}			
+					}
+				}
+				console.log("Added all denominators");
 			}
 
 			function calculateCSByDepth(programUid){
@@ -580,22 +614,14 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 															compositeScore.parent.numerator+=compositeScore.numerator;
 														}
 													}
-													if(compositeScore.denominator!=undefined){
-														if(compositeScore.parent.denominator==undefined){
-															compositeScore.parent.denominator=compositeScore.denominator;
-														}
-														else{
-															compositeScore.parent.denominator+=compositeScore.denominator;
-														}
-													}
 												}
 											}
 										}		
 									}
-									console.log("Calculated Composite Scores");
-									console.log(programs[i].programStages[d].compositeScores);
 								}			
 							}
+						console.log("Calculated Composite Scores");
+						console.log(programs[i].programStages);
 					}
 				}
 			}
@@ -608,12 +634,24 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							if(programs[i].programStages[d].compositeScores!=undefined){
 								for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
 									if(programs[i].programStages[d].compositeScores[x].score!=undefined){
-										if(event.dataValues==undefined)
+										if(event.dataValues==undefined){
 											event.dataValues=[];
+											if(debugDatavalues==true)
+												event.debugDataValues=[];
+										}
 										var dataValue= new Object();
-
-										dataValue.dataElement=programs[i].programStages[d].compositeScores[x].uid;
-										dataValue.value=programs[i].programStages[d].compositeScores[x].score;
+										var localCompositeScoreCopy=jQuery.extend(true,{},programs[i].programStages[d].compositeScores[x]);
+										dataValue.dataElement=localCompositeScoreCopy.uid;
+										dataValue.value=localCompositeScoreCopy.score;
+										if(debugDatavalues==true){
+											var debugDataValue= new Object();
+											debugDataValue.dataElement=localCompositeScoreCopy.uid;
+											debugDataValue.value=localCompositeScoreCopy.score;
+											debugDataValue.denominator=localCompositeScoreCopy.denominator;
+											debugDataValue.numerator=localCompositeScoreCopy.numerator;
+											debugDataValue.hierarchy=localCompositeScoreCopy.hierarchy;
+											event.debugDataValues.push(debugDataValue);
+										}
 										event.dataValues.push(dataValue);
 									}
 									//Clear CS
@@ -641,8 +679,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			}
 			function prepareCompositeScores(compositeScoresEvent,event){
 				addNumeratorInCS(compositeScoresEvent,event.dataValues);
-				//clear the old dataValues(only send the new datavalues)
-				delete events.dataValues;
 				calculateCSScores(event.program);
 			}
 
@@ -661,7 +697,10 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							compositeScoresEvent=programs[d].programStages[0].compositeScores;
 							prepareCompositeScores(compositeScoresEvent,events[i]);
 							//add the cs score in the event and clear the score
+							console.log("Save CS in event");
 							updateScores(events[i]);
+							console.log("CS saved in event");
+							console.log(events[i]);
 							continue;
 						}
 					}
@@ -731,6 +770,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 					} 
 				}
+				console.log(programs);
 			};
 
 
@@ -986,8 +1026,9 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				console.log(events);
 				console.log("Prepare dataValues for each event");
 				prepareDataValues();
-				addDenominatorInCS();
 				addParentsInAllCompositeScores();
+				addDenominatorInCS();
+				addChildrenDenominators();
 				console.log("Prepare the compositeScore events");
 				prepareEvents();
 				console.log("Update the compositeScore by Event");
