@@ -516,62 +516,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				return count;
 			}
 
-			//Order compositeScoreRoot and first children for @compositeScores
-			function orderCompositeScoreRoot(compositeScores,rootHierarchy){
-				var rootCS=undefined;
-				var compositeScoreslength=getLengthObject(compositeScores);
-				for(var x=0;x<compositeScoreslength;x++){
-					if(rootHierarchy==compositeScores[x].hierarchy){
-						rootCS= $.extend(true,{},compositeScores[x]);
-					}
-				}
-				//Get the root first children.
-				var localCompositeScoreChildren=[];
-				for(var x=0;x<compositeScoreslength;x++){
-					if(compositeScores[x].hierarchy.indexOf(CS_TOKEN)==-1 && compositeScores[x].hierarchy!=CS_ROOT){
-						localCompositeScoreChildren.push(compositeScores[x]);
-					}
-				}
-				rootCS.children=localCompositeScoreChildren;
-				return rootCS;
-			}
-
-			function orderCompositeChildrens(compositeScores,compositeScoreRoot){
-				var compositeScoreRoot=jQuery.extend({},compositeScoreRoot);
-						for(var x=0;x<compositeScoreRoot.children.length;x++){
-							var compositeScoreslength=getLengthObject(compositeScores);
-							for(var y=0;y<compositeScoreslength;y++){
-								var localParent=compositeScoreRoot.children[x]; 
-								var localHierarchy=compositeScores[y].hierarchy; 
-
-								var splitlocalHierarchy=localHierarchy.split(CS_TOKEN);
-								var splitParentHierarchy=localParent.hierarchy.split(CS_TOKEN);
-								//IF contains hirarchyParent(in the index 0) and have one more level is a child.
-
-								if(splitlocalHierarchy.length-1==splitParentHierarchy.length && localHierarchy.indexOf(localParent.hierarchy)==0){
-									//var compositeScorechildrens=getCompositeChildrens(compositeScore.hierarchy);
-									if(compositeScoreRoot.children[x].children==undefined){
-										compositeScoreRoot.children[x].children=[];
-										compositeScoreRoot.children[x].children.push(compositeScores[y]);
-										}
-									else
-										compositeScoreRoot.children[x].children.push(compositeScores[y]);
-								}
-							}
-						}
-						//add next levels:
-						if(compositeScoreRoot.children!=undefined){
-							for(var x=0;x<compositeScoreRoot.children.length;x++){
-								if(compositeScoreRoot.children[x].children!=undefined){
-									for(var z=0;z<compositeScoreRoot.children[x].children.length;z++){
-										compositeScoreRoot.children[x].children[z]=getCompositeScoreChildrens(compositeScoreRoot.children[x].children[z],compositeScores);
-									}
-								}
-							}
-						}				
-				return compositeScoreRoot;
-			}
-
 			//Prepare all the event scores from the datavalues and the event program compositescores
 			function prepareEvents(){
 				for(var i=0;i<events.length;i++){
@@ -583,10 +527,10 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							var compositeScoresScored=undefined;
 							var compositeScoreRoot=undefined;
 							var compositeScoresOrdered=undefined;
-							//get a copy of the compositeScore including the denominator
-							compositeScoresEvent=$.extend(true,{},programs[d].programStages[0].compositeScores);
+							//get a copy without reference of the compositeScore including the denominator
+							compositeScoresEvent=programs[d].programStages[0].compositeScores;
 							console.log(compositeScoresEvent);
-							compositeScoresScored=addNumeratorInCS(compositeScoresEvent,events[i].dataValues);
+							addNumeratorInCS(compositeScoresEvent,events[i].dataValues);
 							//compositeScoreRoot=orderCompositeScoreRoot(compositeScoresScored,CS_ROOT);
 							//compositeScoresOrdered=orderCompositeChildrens(compositeScoresScored,compositeScoreRoot);	
 							//events[i].compositeScoresOrdered=compositeScoresOrdered;
@@ -605,8 +549,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				for(var i=0;i<dataValues.length;i++){
 
 					if(dataValues[i].factor!=undefined){
-						var compositeScoreslength=getLengthObject(compositeScores);
-						for(var d=0;d<compositeScoreslength;d++){
+						for(var d=0;d<compositeScores.length;d++){
 							if(dataValues[i].compositeScore!=undefined){
 								if(dataValues[i].compositeScore==compositeScores[d].hierarchy){
 										if(compositeScores[d].numerator==undefined)
@@ -626,7 +569,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			function addDenominatorInCS(){
 			console.log("AddingQuestionsDenominators");
 			for(var i=0;i<programs.length;i++){
-				var cuatrouno=0;
 					for(var d=0;d<programs[i].programStages.length;d++){
 							if(programs[i].programStages[d].questions!=undefined){
 								for(var y=0;y<programs[i].programStages[d].questions.length;y++){
@@ -822,6 +764,97 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				
 			}
 
+
+			//fixme: not used
+			//Order compositeScoreRoot and first children for @compositeScores
+			function orderCompositeScoreRoot(compositeScores,rootHierarchy){
+				var rootCS=undefined;
+				var compositeScoreslength=getLengthObject(compositeScores);
+				for(var x=0;x<compositeScoreslength;x++){
+					if(rootHierarchy==compositeScores[x].hierarchy){
+						rootCS= $.extend(true,{},compositeScores[x]);
+					}
+				}
+				//Get the root first children.
+				var localCompositeScoreChildren=[];
+				for(var x=0;x<compositeScoreslength;x++){
+					if(compositeScores[x].hierarchy.indexOf(CS_TOKEN)==-1 && compositeScores[x].hierarchy!=CS_ROOT){
+						localCompositeScoreChildren.push(compositeScores[x]);
+					}
+				}
+				rootCS.children=localCompositeScoreChildren;
+				return rootCS;
+			}
+			//fixme: not used
+			function orderCompositeChildrens(compositeScores,compositeScoreRoot){
+				var compositeScoreRoot=jQuery.extend({},compositeScoreRoot);
+						for(var x=0;x<compositeScoreRoot.children.length;x++){
+							var compositeScoreslength=getLengthObject(compositeScores);
+							for(var y=0;y<compositeScoreslength;y++){
+								var localParent=compositeScoreRoot.children[x]; 
+								var localHierarchy=compositeScores[y].hierarchy; 
+
+								var splitlocalHierarchy=localHierarchy.split(CS_TOKEN);
+								var splitParentHierarchy=localParent.hierarchy.split(CS_TOKEN);
+								//IF contains hirarchyParent(in the index 0) and have one more level is a child.
+
+								if(splitlocalHierarchy.length-1==splitParentHierarchy.length && localHierarchy.indexOf(localParent.hierarchy)==0){
+									//var compositeScorechildrens=getCompositeChildrens(compositeScore.hierarchy);
+									if(compositeScoreRoot.children[x].children==undefined){
+										compositeScoreRoot.children[x].children=[];
+										compositeScoreRoot.children[x].children.push(compositeScores[y]);
+										}
+									else
+										compositeScoreRoot.children[x].children.push(compositeScores[y]);
+								}
+							}
+						}
+						//add next levels:
+						if(compositeScoreRoot.children!=undefined){
+							for(var x=0;x<compositeScoreRoot.children.length;x++){
+								if(compositeScoreRoot.children[x].children!=undefined){
+									for(var z=0;z<compositeScoreRoot.children[x].children.length;z++){
+										compositeScoreRoot.children[x].children[z]=getCompositeScoreChildrens(compositeScoreRoot.children[x].children[z],compositeScores);
+									}
+								}
+							}
+						}				
+				return compositeScoreRoot;
+			}
+			function addParentInCompositeScore(compositeScores,parentCompositeScore){
+				for(var i=0;i<programs.length;i++){
+					for(var d=0;d<programs[i].programStages.length;d++){
+						if(programs[i].programStages[d].compositeScores!=undefined){
+							for(var y=0;y<programs[i].programStages[d].compositeScores.length;y++){
+								var childCompositeScore=programs[i].programStages[d].compositeScores[y];
+								var parentHierarchy=parentCompositeScore.hierarchy;
+								var childHierarchy=childCompositeScore.hierarchy;
+								if(childHierarchy.split(CS_TOKEN).length-1==parentHierarchy.split(CS_TOKEN).length && childHierarchy.indexOf(parentHierarchy)==0){
+									childCompositeScore.parent=parentCompositeScore;
+								}
+
+							}
+						}
+					} 
+				}
+			}
+
+			function addParentsInAllCompositeScores(){
+				console.log("Adding CS parent relations");
+				for(var i=0;i<programs.length;i++){
+					for(var d=0;d<programs[i].programStages.length;d++){
+						if(programs[i].programStages[d].questions!=undefined){
+							for(var y=0;y<programs[i].programStages[d].compositeScores.length;y++){
+								var compositeScore=programs[i].programStages[d].compositeScores[y];
+								addParentInCompositeScore(programs[i].programStages[d].compositeScores,compositeScore);
+
+							}
+						}
+					} 
+				}
+				console.log(programs);
+			}
+
 			function calculateCStree(compositeScoresTree){
 				for(var i=0;i<compositeScoresTree.length;i++){
 					var scores=compositeScoresTree[i].getChildrenScores();
@@ -852,6 +885,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				console.log("Prepare dataValues for each event");
 				prepareDataValues();
 				addDenominatorInCS();
+				addParentsInAllCompositeScores();
 				console.log("Prepare the compositeScore events");
 				prepareEvents();
 				console.log("Update the compositeScore by Event");
