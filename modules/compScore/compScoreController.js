@@ -727,26 +727,30 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 											if(debugDatavalues==true)
 												event.debugDataValues=[];
 										}
-										var dataValue= new Object();
+										var dataValue= new Object;
 										var localCompositeScoreCopy=jQuery.extend(true,{},programs[i].programStages[d].compositeScores[x]);
-										dataValue.dataElement=localCompositeScoreCopy.uid;
-										dataValue.value=localCompositeScoreCopy.score;
+										dataValue.dataElement=jQuery.extend(true,{},programs[i].programStages[d].compositeScores[x]).uid;
+										dataValue.value=jQuery.extend(true,{},programs[i].programStages[d].compositeScores[x]).score;
+										event.dataValues.push(dataValue);
+									}
+									if(programs[i].programStages[d].compositeScores[x].hierarchy==6){
+										console.log(programs[i].programStages[d].compositeScores[x].score);
+										console.log(event.event);
+									}
+									//Clear CS
+									delete programs[i].programStages[d].compositeScores[x].score;
+									delete programs[i].programStages[d].compositeScores[x].numerator;
+									delete programs[i].programStages[d].compositeScores[x].denominator;
 										if(debugDatavalues==true){
 											var debugDataValue= new Object();
-											debugDataValue.dataElement=localCompositeScoreCopy.uid;
+											debugDataValue.dataElement=localCompositeScoreCopy;
 											debugDataValue.value=localCompositeScoreCopy.score;
 											debugDataValue.denominator=localCompositeScoreCopy.denominator;
 											debugDataValue.numerator=localCompositeScoreCopy.numerator;
 											debugDataValue.hierarchy=localCompositeScoreCopy.hierarchy;
 											event.debugDataValues.push(debugDataValue);
 										}
-										event.dataValues.push(dataValue);
-									}
-									//Clear CS
-									delete programs[i].programStages[d].compositeScores[x].score;
-									delete programs[i].programStages[d].compositeScores[x].numerator;
-									delete programs[i].programStages[d].compositeScores[x].denominator;
-								}		
+								}
 							}
 						}			
 					}
@@ -781,6 +785,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 
 			//Prepare all the event scores from the datavalues and the event program compositescores
 			function prepareEvents(){
+				console.log(events[i]);
 				for(var i=0;i<events.length;i++){
 					var compositeScores=undefined;
 					for(var d=0;d<programs.length;d++){
@@ -794,14 +799,13 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							compositeScoresEvent=programs[d].programStages[0].compositeScores;
 							prepareCompositeScores(compositeScoresEvent,events[i]);
 							//add the cs score in the event and clear the score
-							console.log("Save CS in event");
 							updateScores(events[i]);
-							console.log("CS saved in event");
-							console.log(events[i]);
 							continue;
 						}
 					}
 				}
+				console.log("CS saved in event");
+				console.log(events[i]);
 			}
 
 			//Adds in compositeScores the final numerator from the datavalues.
@@ -850,11 +854,12 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 													if(programs[i].programStages[d].compositeScores[x].denominator==undefined){
 														//To cast a string to number is necesary add +
 														programs[i].programStages[d].compositeScores[x].denominator=(+question.denominator);
+														continue;
 													}
 													else{
 														programs[i].programStages[d].compositeScores[x].denominator=(programs[i].programStages[d].compositeScores[x].denominator)+(+question.denominator);
+														continue;
 													}
-												continue;
 												}
 											}
 										}
@@ -866,7 +871,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 				console.log("question without compositescore");
 				console.log(errorQuestionsWithoutCS);
-				console.log(programs);
 			};
 
 
@@ -1222,13 +1226,12 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							for(var y=0;y<programs[i].programStages[d].compositeScores.length;y++){
 								var compositeScore=programs[i].programStages[d].compositeScores[y];
 								addParentInCompositeScore(programs[i].programStages[d].compositeScores,compositeScore);
-
 							}
 						}
 					} 
 				}
 			}
-			
+
 			function preparePrograms(){
 				console.log(programs);
 				console.log(events);
