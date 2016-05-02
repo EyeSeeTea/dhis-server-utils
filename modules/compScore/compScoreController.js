@@ -48,6 +48,10 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				var SERVER_HEADER_UID="olcVXnDPG1U";
 				var SERVER_TAB_UID="HzxUdTtqy5c";
 				var SERVER_QUESTIONTYPE_UID="RkNBKHl7FcO";
+				var SERVER_QUESTION_CHILD="CHILD";
+				var SERVER_QUESTION_PARENT="PARENT";
+				var SERVER_QUESTION_RELATION_UID="mvGz6QTxEQq";
+				var SERVER_QUESTION_GROUP_UID="LsjVjwl69sP";
 				var CS_TOKEN=".";
 				var CS_ROOT="1";
 
@@ -335,7 +339,27 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 					}
 				}
+				buildParentChildRelations();
 			}
+			//Build the parent-child question relations
+			function buildParentChildRelations(){
+				for(var i = 0; i<programs.length;i++){
+					for(var d = 0; d<programs[i].programStages.length;d++){
+						for(var x = 0; x<programs[i].programStages[d].questions.length;x++){
+							var questions= programs[i].programStages[d].questions;
+							var question=programs[i].programStages[d].questions[x];
+							if(question.isChild!=undefined && question.isChild==true){
+								for(var y =0;y<questions.length;y++){
+									if(questions[y].isParent!=undefined && questions[y].isParent && questions[y].group==question.group){
+										question.parent=questions[y];
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
 
 			//create a question or composite score from the dataelement.
 			function buildDataElement(data){
@@ -393,6 +417,17 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 						if(data.attributeValues[i].attribute.id==SERVER_COMPOSITESCORE_UID){
 							newElement.compositeScore=data.attributeValues[i].value;
+						}
+						if(data.attributeValues[i].attribute.id==SERVER_QUESTION_RELATION_UID){
+							if(data.attributeValues[i].value==SERVER_QUESTION_PARENT){
+								newElement.isParent=true;
+							}
+							else if(data.attributeValues[i].value==SERVER_QUESTION_CHILD){
+								newElement.isChild=true;
+							}
+						}
+						if(data.attributeValues[i].attribute.id==SERVER_QUESTION_GROUP_UID){
+							newElement.group=data.attributeValues[i].value;
 						}
 					}
 					if(data.optionSet!=undefined){
@@ -733,40 +768,39 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			console.log("AddingQuestionsDenominators");
 			for(var i=0;i<programs.length;i++){
 					for(var d=0;d<programs[i].programStages.length;d++){
-							if(programs[i].programStages[d].questions!=undefined){
-								for(var y=0;y<programs[i].programStages[d].questions.length;y++){
-									var question=programs[i].programStages[d].questions[y]; 
-									if(question.denominator!=undefined){
-										//search the question compositeScore if is a computable question.
-										if(programs[i].programStages[d].compositeScores!=undefined){
-											for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
-												if(programs[i].programStages[d].questions[y].compositeScore==undefined){
-													console.log("question without compositescore");
-													console.log(programs[i].programStages[d].questions[y])
-													continue;
+						if(programs[i].programStages[d].questions!=undefined){
+							for(var y=0;y<programs[i].programStages[d].questions.length;y++){
+								var question=programs[i].programStages[d].questions[y]; 
+								if(question.denominator!=undefined){
+									//search the question compositeScore if is a computable question.
+									if(programs[i].programStages[d].compositeScores!=undefined){
+										for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
+											if(programs[i].programStages[d].questions[y].compositeScore==undefined){
+												console.log("question without compositescore");
+												console.log(programs[i].programStages[d].questions[y])
+												continue;
+											}
+											var localHierarchy=programs[i].programStages[d].questions[y].compositeScore.split(CS_TOKEN);
+											if(programs[i].programStages[d].compositeScores[x]==undefined){
+												console.log("cs undefined" + x);
+												console.log(programs[i].programStages[d].questions[y]);
+												continue;
+											}
+											var localCompositeScore=programs[i].programStages[d].compositeScores[x].hierarchy;
+											if(localCompositeScore==question.compositeScore){
+												if(programs[i].programStages[d].compositeScores[x].denominator==undefined){
+													//To cast a string to number is necesary add +
+													programs[i].programStages[d].compositeScores[x].denominator=(+question.denominator);
 												}
-												var localHierarchy=programs[i].programStages[d].questions[y].compositeScore.split(CS_TOKEN);
-												if(programs[i].programStages[d].compositeScores[x]==undefined){
-													console.log("cs undefined" + x);
-													console.log(programs[i].programStages[d].questions[y]);
-													continue;
+												else{
+													programs[i].programStages[d].compositeScores[x].denominator=(programs[i].programStages[d].compositeScores[x].denominator)+(+question.denominator);
 												}
-												var localCompositeScore=programs[i].programStages[d].compositeScores[x].hierarchy;
-												if(localCompositeScore==question.compositeScore){
-													if(programs[i].programStages[d].compositeScores[x].denominator==undefined){
-														//To cast a string to number is necesary add +
-														programs[i].programStages[d].compositeScores[x].denominator=(+question.denominator);
-													}
-													else{
-														programs[i].programStages[d].compositeScores[x].denominator=(programs[i].programStages[d].compositeScores[x].denominator)+(+question.denominator);
-													}
-													continue;
-												}
+												continue;
 											}
 										}
 									}
 								}
-							
+							}
 						}
 					} 
 				}
@@ -924,11 +958,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					},function(){$scope.invalidProgram=true;});
 			}
 
-			function getChildrenScores(){
-				
-			}
-
-
 			//fixme: not used
 			//Order compositeScoreRoot and first children for @compositeScores
 			function orderCompositeScoreRoot(compositeScores,rootHierarchy){
@@ -949,6 +978,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				rootCS.children=localCompositeScoreChildren;
 				return rootCS;
 			}
+
 			//fixme: not used
 			function orderCompositeChildrens(compositeScores,compositeScoreRoot){
 				var compositeScoreRoot=jQuery.extend({},compositeScoreRoot);
@@ -1006,6 +1036,17 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					} 
 				}
 			}
+
+			function sendEvents(){
+				for(var i=0;i<events.length;i++){
+					//the patch needs some event dataValue.dataElement included in the dataValues array to work in the server side.
+					var dataElement=events[i].dataValues[0].dataelement;
+					console.log(events[i]);
+					PatchEvent.patch({eventuid:events[id].event,dataValueUid:events[i].dataValues[0]});
+					break;
+				}
+			}
+
 			//add parent for each compositeScore
 			function addParentsInAllCompositeScores(){
 				console.log("Adding CS parent relations");
@@ -1032,11 +1073,11 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				console.log("Prepare the compositeScore events");
 				prepareEvents();
 				console.log("Update the compositeScore by Event");
-				//calculateCSEvents();
 				console.log(programs);
 				console.log(events);
-				//sendEvents();
+				sendEvents();
 			}
+
 		}
 
 
