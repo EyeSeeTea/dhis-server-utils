@@ -160,22 +160,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					downloadMetadataByProgramStage();					
 				}
 
-				//not used
-				//save the programStageDataElements in the ProgramStageSections
-				function saveProgramStageSectionDataElements(data){
-					//Save the programStageDataelements in the correct program->programStage
-					var programStageDataElements=data.programStageDataElements;
-					for(var i=0;i<programs.length;i++){
-						for(var d=0;d<programs[i].programStages.length;d++){
-							for(var y=0;y<programs[i].programStages[d].programStageSections.length;y++){
-								if(programs[i].programStages[d].programStageSections[y].id==data.id){
-									programs[i].programStages[d].programStageSections[y].programStageDataElements=(data.programStageDataElements);
-								}
-							}
-						}
-					}
-				}
-
 				//Save the programStageDataelements in the correct program->programStage
 				function saveProgramStageDataElements(data){
 					//Save the programStageDataelements in the correct program->programStage
@@ -184,25 +168,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						for(var d=0;d<programs[i].programStages.length;d++){
 							if(programs[i].programStages[d].id==data.id){
 								programs[i].programStages[d].programStageDataElements=(data.programStageDataElements);
-							}
-						}
-					}
-				}
-
-				//not used
-				function saveDataElementsFromProgramStageDataElementsByProgramStageSection(data){
-					for(var i = 0; i<programs.length;i++){
-						for(var d = 0; d<programs[i].programStages.length;d++){
-							for(var y = 0; y<programs[i].programStages[d].programStageSections.length;y++){
-								for(var x = 0; x<programs[i].programStages[d].programStageSections[y].programStageDataElements.length;x++){
-									if(programs[i].programStages[d].programStageSections[y].programStageDataElements[x].id==data.id){
-										//Save the dataelement in the same level as programStageDataElements.
-										if(programs[i].programStages[d].programStageSections[y].dataElements==undefined){
-											programs[i].programStages[d].programStageSections[y].dataElements=[];
-										}
-										programs[i].programStages[d].programStageSections[y].dataElements.push(data.dataElement);
-									}
-								}
 							}
 						}
 					}
@@ -223,52 +188,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							}
 						}
 					}
-				}
-
-				//not used
-				function saveProgramStageSections(data){
-					for(var i = 0; i<programs.length;i++){
-						for(var d = 0; d<programs[i].programStages.length;d++){
-							if(programs[i].programStages[d].id==data.id){
-								//Save the dataelement in the same level as programStageDataElements.
-								if(programs[i].programStages[d].programStageSections==undefined){
-									programs[i].programStages[d].programStageSections=[];
-								}
-								programs[i].programStages[d].programStageSections=(data.programStageSections);
-							}
-						}
-					}
-				}
-
-
-
-				//not used
-				//handler
-				var resultProgramStage;
-				//async number of calls.
-				var totalProgramStages=0;
-
-				//Retrireve all programsStage metadata
-				function downloadMetadataByProgramStageWithProgramStageSections(){
-					//download each programStage 
-					for(var d=0;d<programs.length;d++){
-						//programStages
-						for(var i=0;i<programs[d].programStages.length;i++){
-							totalProgramStages++;
-							//Returns the programStageDataElements from the ProgramStages
-							resultProgramStage=ProgramStageSectionsByProgramStage.get({programStage:programs[d].programStages[i].id});	
-							resultProgramStage.$promise.then(function(data) {
-								//save the dataelements in the program/programstages/questions /program/programstages/compositeScores
-								saveProgramStageSections(data);
-								totalProgramStages--;
-								if(totalProgramStages==0){
-									console.log(programs);
-									downloadMetadataByProgramStageSection();
-			 					}
-							},function(){$scope.unexpectedError=true;});
-						}					
-					}
-
 				}
 
 				var resultProgramStage;
@@ -295,38 +214,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 								},function(){$scope.unexpectedError=true;});
 						}					
 					}
-				}
-
-				//not used
-				//handler
-				//the program stage section represents the tabgroup
-				var resultProgramStageSection;
-				//async number of calls.
-				var totalProgramStagesSections=0;
-				//Retrireve all programsStage metadata
-				function downloadMetadataByProgramStageSection(){
-					//download each programStage 
-					for(var d=0;d<programs.length;d++){
-						//programStages
-						for(var i=0;i<programs[d].programStages.length;i++){
-							//Returns the programStageDataElements from the ProgramStagesSection
-							for(var y=0;y<programs[d].programStages[d].programStageSections.length;y++){
-								totalProgramStagesSections++;
-								resultProgramStageSection=ProgramStageDataElementsByProgramStageSection.get({programStageSection:programs[d].programStages[i].programStageSections[y].id});	
-								resultProgramStageSection.$promise.then(function(data) {
-									//save the dataelements in the program/programstages/questions /program/programstages/compositeScores
-									saveProgramStageSectionDataElements(data);
-									totalProgramStagesSections--;
-									if(totalProgramStagesSections==0){
-										console.log("program stages sections donwloaded");
-										console.log(programs);
-										downloadMetadataByProgramStageDataElement();
-				 					}
-								},function(){$scope.unexpectedError=true;});
-							}
-						}					
-					}
-
 				}
 
 				var controlProgramStageDataelementsDownloaded=0;
@@ -562,53 +449,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				return question;
 			}
 
-			//fixme not used
-			function getCompositeParent(hierarchyParent){
-				var compositeScores;
-				for(var i=0;i<programs.length;i++){
-					for(var d=0;d<programs[i].programStages.length;d++){
-						for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
-							if(programs[i].programStages[d].compositeScores[x].hierarchy==hierarchy)
-								return programs[i].programStages[d].compositeScores[x];
-						}
-					}
-				}
-				return compositeScores;
-			}
-
-			//fixme not used
-			//build the compositeScore tree
-			function getCompositeScoreChildrens(compositeScoreParent,compositeScores){
-				var compositeScoreslength=getLengthObject(compositeScores);
-				for(var x=0;x<compositeScoreslength;x++){
-					var localParent=compositeScoreParent; 
-					var localHierarchy=compositeScores[x].hierarchy;
-					var splitlocalHierarchy=localHierarchy.split(CS_TOKEN);
-					var splitParentHierarchy=localParent.hierarchy.split(CS_TOKEN);
-					//IF contains hirarchyParent(in the index 0) and have one more level is a child.
-					if(splitlocalHierarchy.length-1==splitParentHierarchy.length && localHierarchy.indexOf(localParent.hierarchy)==0){
-						//var compositeScorechildrens=getCompositeChildrens(compositeScore.hierarchy);
-						compositeScores[x]=getCompositeScoreChildrens(compositeScores[x],compositeScores);
-						if(compositeScoreParent.children==undefined){
-							compositeScoreParent.children=[];
-							compositeScoreParent.children.push(compositeScores[x]);
-						}
-						else
-							compositeScoreParent.children.push(compositeScores[x]);
-						}
-				}
-				return compositeScoreParent;
-			}
-
-			//when an object lost her reference, lost her propieties like length
-			function getLengthObject(data){
-				var count=0;
-				for (var value in data){
-					count++;
-				}
-				return count;
-			}
-
 			function calculateCSScores(programUid){
 				for(var i=0;i<programs.length;i++){
 					if(programs[i].id==programUid){
@@ -751,21 +591,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 											event.debugDataValues.push(debugDataValue);
 										}
 								}
-							}
-						}			
-					}
-				}
-			}
-
-			//fixme not used
-			function clearCSNumerators(){
-				for(var i=0;i<programs.length;i++){
-					if(programs[i].id==programUid){
-						for(var d=0;d<programs[i].programStages.length;d++){
-							if(programs[i].programStages[d].compositeScores!=undefined){
-								for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
-									programs[i].programStages[d].compositeScores[x].numerator=undefined;
-								}		
 							}
 						}			
 					}
@@ -1128,63 +953,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					},function(){$scope.invalidProgram=true;});
 			}
 
-			//fixme: not used
-			//Order compositeScoreRoot and first children for @compositeScores
-			function orderCompositeScoreRoot(compositeScores,rootHierarchy){
-				var rootCS=undefined;
-				var compositeScoreslength=getLengthObject(compositeScores);
-				for(var x=0;x<compositeScoreslength;x++){
-					if(rootHierarchy==compositeScores[x].hierarchy){
-						rootCS= $.extend(true,{},compositeScores[x]);
-					}
-				}
-				//Get the root first children.
-				var localCompositeScoreChildren=[];
-				for(var x=0;x<compositeScoreslength;x++){
-					if(compositeScores[x].hierarchy.indexOf(CS_TOKEN)==-1 && compositeScores[x].hierarchy!=CS_ROOT){
-						localCompositeScoreChildren.push(compositeScores[x]);
-					}
-				}
-				rootCS.children=localCompositeScoreChildren;
-				return rootCS;
-			}
-
-			//fixme: not used
-			function orderCompositeChildrens(compositeScores,compositeScoreRoot){
-				var compositeScoreRoot=jQuery.extend({},compositeScoreRoot);
-						for(var x=0;x<compositeScoreRoot.children.length;x++){
-							var compositeScoreslength=getLengthObject(compositeScores);
-							for(var y=0;y<compositeScoreslength;y++){
-								var localParent=compositeScoreRoot.children[x]; 
-								var localHierarchy=compositeScores[y].hierarchy; 
-
-								var splitlocalHierarchy=localHierarchy.split(CS_TOKEN);
-								var splitParentHierarchy=localParent.hierarchy.split(CS_TOKEN);
-								//IF contains hirarchyParent(in the index 0) and have one more level is a child.
-
-								if(splitlocalHierarchy.length-1==splitParentHierarchy.length && localHierarchy.indexOf(localParent.hierarchy)==0){
-									//var compositeScorechildrens=getCompositeChildrens(compositeScore.hierarchy);
-									if(compositeScoreRoot.children[x].children==undefined){
-										compositeScoreRoot.children[x].children=[];
-										compositeScoreRoot.children[x].children.push(compositeScores[y]);
-										}
-									else
-										compositeScoreRoot.children[x].children.push(compositeScores[y]);
-								}
-							}
-						}
-						//add next levels:
-						if(compositeScoreRoot.children!=undefined){
-							for(var x=0;x<compositeScoreRoot.children.length;x++){
-								if(compositeScoreRoot.children[x].children!=undefined){
-									for(var z=0;z<compositeScoreRoot.children[x].children.length;z++){
-										compositeScoreRoot.children[x].children[z]=getCompositeScoreChildrens(compositeScoreRoot.children[x].children[z],compositeScores);
-									}
-								}
-							}
-						}				
-				return compositeScoreRoot;
-			}
 			//Add parent @parentCompositeScore in a child in the @compositeScores list
 			function addParentInCompositeScore(compositeScores,parentCompositeScore){
 				for(var i=0;i<programs.length;i++){
