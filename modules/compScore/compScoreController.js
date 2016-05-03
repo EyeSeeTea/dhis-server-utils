@@ -36,8 +36,9 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			
 			$scope.submit=function(){
 				
-				//show all the CS datavalues with numerator/denominator/score/uid/hirarchycal code.
 				var debugDatavalues=true;
+
+				//SERVER VALUES
 				var SERVER_ATTRIBUTE_UID="IMVz39TtAHM";
 				var COMPOSITE_SCORE="93";
 				var QUESTION="92";
@@ -63,41 +64,47 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 
 
 				$scope.progressbarDisplayed = true;
-				$scope.progressbarDisplayed ="DOWNLOADING_EVENTS";
+
+				//Some error messages:
 				$scope.loginError=false;
 				$scope.invalidProgram=false;
 				$scope.unexpectedError=false;
+
+				//Parse date
 				var start_date=$filter('date')($scope.start_date,'yyyy-MM-dd');
 				var end_date=$filter('date')($scope.end_date,'yyyy-MM-dd');
+
+
 				//handlers for async calls.
 				var resultOptionSet;
 				var resultEvent;
 				var newResultEvent;
-				var resultDataElement;
-				var eventsByProgram;
-				var resultOfDataelements;
-				var nextResultOfDataelements;
 				var resultProgramStageDataElement;
+				var resultProgramStage;
 
 				//List of events
 				var events;
+
 				//list of programs
 				var programs=[];
 
 				//List of optionsets
 				var optionSets;
-				
-				
-				//Count variables to control when finish the async calls. 
+								
+				//This variables are used to control the number of active asyn calls.
+				//When the value is 0 no calls are active.
+				//Adds one for each call.
 				var totalEvents=0;
 				var totalPrograms=0;
+				var totalProgramStages=0;
 				var programsDownloaded=0;
+				var controlProgramStageDataelementsDownloaded=0;
+				var eventsByprogramsDownloaded=0;
 
-				//all downloaded control all the asyncalls to continue after pull events and programs.
+				//allDownloaded controls the async calls for the events and programs.
 				var allDownloaded=0;
 
-				//Call on presh submit:
-
+				//On sumbit, the program starts here:
 				if(($scope.program_uid)==undefined || ($scope.program_uid)==""){
 					//Requests all the programs or checks
 					var resultPrograms=ProgramsList.get();
@@ -107,8 +114,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					var resultPrograms=CheckProgram.get({uid:$scope.program_uid});
 				}
 				
-				//Get all the programs and continue program by program
-				//Async result
+				//Retrieve all data from the programs and events and will send it at the end.
 				resultPrograms.$promise.then(function(data) {
 					if(data.programs==undefined && data.id==undefined)
 						$scope.loginError=true;
@@ -129,7 +135,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					}
 				},function(){$scope.invalidProgram=true;});
 
-				//download the programs and the events and at the end of the async calls prepare and send the events with the new composite scores
+				//Retrieve the optionsSets and after retrieve the selected program and the events program in the provided date. And Continue.
 				function downloadProgram(program){
 					resultOptionSet=OptionsSets.get();	
 					resultOptionSet.$promise.then(function(data) {
@@ -154,15 +160,14 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 						program.programStages.push(programStage);
 					}
-					//Save program in global programs variable
+					//Save program in global variable
 					programs.push(program);
 					//continue downloading All the metadata
 					downloadMetadataByProgramStage();					
 				}
 
-				//Save the programStageDataelements in the correct program->programStage
+				//Retrieve the programStageDataelements for each ProgramStage
 				function saveProgramStageDataElements(data){
-					//Save the programStageDataelements in the correct program->programStage
 					var programStageDataElements=data.programStageDataElements;
 					for(var i=0;i<programs.length;i++){
 						for(var d=0;d<programs[i].programStages.length;d++){
@@ -174,12 +179,12 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 
 
+				//Retrive the dataelements from the programStageDataElements for each ProgramStage.
 				function saveDataElementsFromProgramStageDataElementsByProgramStage(data){
 					for(var i = 0; i<programs.length;i++){
 						for(var d = 0; d<programs[i].programStages.length;d++){
 							for(var y = 0; y<programs[i].programStages[d].programStageDataElements.length;y++){
 									if(programs[i].programStages[d].programStageDataElements[y].id==data.id){
-										//Save the dataelement in the same level as programStageDataElements.
 										if(programs[i].programStages[d].dataElements==undefined){
 											programs[i].programStages[d].dataElements=[];
 										}
@@ -190,20 +195,15 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					}
 				}
 
-				var resultProgramStage;
-				//async number of calls.
-				var totalProgramStages=0;
-				//Retrireve all programsStage metadata
+				//Retrireve all the programStageDataElements from each ProgramStage
 				function downloadMetadataByProgramStage(){
 					//download each programStage 
 					for(var d=0;d<programs.length;d++){
 						//programStages
 						for(var i=0;i<programs[d].programStages.length;i++){
-							//Returns the programStageDataElements from the ProgramStages
 								totalProgramStages++;
 								resultProgramStage=ProgramStageDataElementsByProgramStage.get({programStage:programs[d].programStages[i].id});	
 								resultProgramStage.$promise.then(function(data) {
-									//save the dataelements in the program/programstages/questions /program/programstages/compositeScores
 									saveProgramStageDataElements(data);
 									totalProgramStages--;
 									if(totalProgramStages==0){
@@ -216,20 +216,12 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					}
 				}
 
-				var controlProgramStageDataelementsDownloaded=0;
 				//Retrieve all programStageDataElements metadata
 				function downloadMetadataByProgramStageDataElement(){
 					for(var i=0;i<programs.length;i++){
 						for(var d=0;d<programs[i].programStages.length;d++){
 							for(var y=0;y<programs[i].programStages[d].programStageDataElements.length;y++){
-								//Count to control the async download
-								//the programs is async object... maybe it could be wrong.
 								controlProgramStageDataelementsDownloaded++;
-
-
-								//Returns the DataElements from the ProgramStageDataElements
-								//Fixme: we need add delay here or something;
-								console.log("Downloading programStagesDataElements");
 								resultProgramStageDataElement=DataElementsByProgramStageDataElements.get({programStageDataElement:programs[i].programStages[d].programStageDataElements[y].id});	
 								resultProgramStageDataElement.$promise.then(function(data) {
 									saveDataElementsFromProgramStageDataElementsByProgramStage(data);
@@ -237,10 +229,9 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 									if(controlProgramStageDataelementsDownloaded==0){
 										console.log("Finish DataElements from programStageDataElement");
 										buildAllDataElements();
-										console.log(programs);
 										allDownloaded--;
 										if(allDownloaded==0){
-											preparePrograms();
+											uploadPrograms();
 									}
 			 					}
 							},function(){$scope.unexpectedError=true;});
@@ -249,11 +240,12 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 			}
 				
-			//Save the dataelement as question or composite score for each program/programstage.
+			//Store the dataElements in the questions or compositeScore list.
 			function buildAllDataElements(){
 				for(var i = 0; i<programs.length;i++){
 					for(var d = 0; d<programs[i].programStages.length;d++){
 							for(var x = 0; x<programs[i].programStages[d].dataElements.length;x++){
+								//build question/compoisteScore
 								var dataElement=buildDataElement(programs[i].programStages[d].dataElements[x]);
 								if(dataElement!=undefined){
 									if(dataElement.type==QUESTION){
@@ -278,10 +270,11 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 					}
 				}
+				//Build the question child/parent relations
 				buildParentChildRelations();
 			}
 
-			//Build the parent-child question relations
+			//Build the parent/child question relations
 			function buildParentChildRelations(){
 				for(var i = 0; i<programs.length;i++){
 					for(var d = 0; d<programs[i].programStages.length;d++){
@@ -311,9 +304,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					if(data.attributeValues[i].attribute.id==SERVER_ATTRIBUTE_UID){
 						if(data.attributeValues[i].value==QUESTION){
 							if(data.optionSet==undefined){
-
 								var isCalculable=false;
-								//if the question had numerator/denominator is a child question
+								//fixme: it is ignoring the questions without numerator.
 								for(var d=0;d<data.attributeValues.length;d++){
 									if(data.attributeValues[d].attribute.id==SERVER_NUMERATOR_UID){
 										isCalculable=true;
@@ -329,13 +321,15 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							newElement.type=COMPOSITE_SCORE;
 						}
 						else{
-							console.log("Error? no question and not composite score");
-							console.log(dataElement);
+							if(debugDatavalues==true){
+								console.log("Error? no question and not composite score");
+								console.log(dataElement);
+							}
 						}
 					}
 				}
 				newElement.name=data.name;
-				//Second loop to create the correct object
+				//Second loop adds the correct propierties.
 				for(var i=0;i<data.attributeValues.length;i++){
 
 					if(data.attributeValues[i].attribute.id==SERVER_TAB_UID){
@@ -385,7 +379,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				return newElement;
 			}
 
-			//save all the events in events array.
+			//save all the events in events global list.
 			function saveEvents(data){
 				if(data.events!=undefined){
 					if(events==undefined){
@@ -449,6 +443,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				return question;
 			}
 
+			//Calculate all the CompositeScore in a program with the stored (numerator*factor/denumerator) and calc the score.
 			function calculateCSScores(programUid){
 				for(var i=0;i<programs.length;i++){
 					if(programs[i].id==programUid){
@@ -470,7 +465,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 			}
 
-			function getLowestDepth(program){
+			//return the lowest depth value in compositeScore hierarchy.
+			function getLowestDepth(program){	
 				var depth=0;
 
 				for(var d=0;d<program.programStages.length;d++){
@@ -487,10 +483,11 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				return depth;	
 			}
 
+			//Fixme review parent/child
+			//Propage the CompositeScore children denominator to the parent denominator, from lower level to upper level.
 			function propageChildrenDenominators(){
 				for(var i=0;i<programs.length;i++){
 					depth=getLowestDepth(programs[i]);
-					//Add numerator/denominator from children to parents by depth
 					for(var actualDepth=depth;actualDepth>0;actualDepth--){
 						for(var d=0;d<programs[i].programStages.length;d++){
 							if(programs[i].programStages[d].compositeScores!=undefined){
@@ -517,6 +514,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				console.log("Added all denominators");
 			}
 
+			//Calculate the CompositeScores from the lower compositeScorehirearchy, level by level.
+			//Example: Calculate all the 1.1.1 1.1.2 1.1.3 and propage the num/denum to 1.1 for each one.
 			function calculateCSByDepth(programUid){
 				for(var i=0;i<programs.length;i++){
 					if(programs[i].id==programUid){
@@ -547,12 +546,14 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 									}
 								}			
 							}
-						console.log("Calculated Composite Scores");
-						console.log(programs[i].programStages);
+						if(debugDatavalues==true)
+							console.log("Calculated Composite Scores");
+							console.log(programs[i].programStages);
 					}
 				}
 			}
 
+			//Save the actual CS score in the event and clear the CS.
 			function updateScores(event){
 				//Clear dataValues
 				event.oldDataValues=event.dataValues;
@@ -598,6 +599,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 			}
 
+			//Add denominators, numerators, and calcule CS Scores.
 			function prepareCompositeScores(compositeScoresEvent,event){
 				//Store the question denominators in CS
 				addDenominatorInCS();
@@ -609,7 +611,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				calculateCSScores(event.program);
 			}
 
-			//Prepare all the event scores from the datavalues and the event program compositescores
+			//Prepare all the composite scores with the particular numerator/denominator for each event
 			function prepareEvents(){
 				console.log(events[i]);
 				for(var i=0;i<events.length;i++){
@@ -626,7 +628,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							prepareCompositeScores(compositeScoresEvent,events[i]);
 							//add the cs score in the event and clear the score
 							updateScores(events[i]);
-							continue;
 						}
 					}
 				}
@@ -634,7 +635,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				console.log(events[i]);
 			}
 
-			//Adds in compositeScores the final numerator from the datavalues.
+			//Adds the compositeScore numerator number reading the saved (numerator*factor) datavalue.
 			function addNumeratorInCS(compositeScores,dataValues){
 				for(var i=0;i<dataValues.length;i++){
 
@@ -695,12 +696,153 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 					} 
 				}
-				console.log("question without compositescore");
-				console.log(errorQuestionsWithoutCS);
+				if(debugDatavalues)
+					console.log("question without compositescore");
+					console.log(errorQuestionsWithoutCS);
 			};
 
+			//Discard the questions without this options.
+			function isScored(value){
+				if(value==DROPDOWN_LIST || value==DROPDOWN_LIST_DISABLED || value==RADIO_GROUP_VERTICAL || value==RADIO_GROUP_HORIZONTAL)
+					return true;
+				return false;
+			}
 
-			//Save the factor, the compositeScore and the sumFactor in each dataValue
+			//Add the numerator*factor value in the dataValue.
+			function prepareDataValues(){
+				for(var i=0;i<events.length;i++){
+					for(var d=0;d<events[i].dataValues.length;d++){
+						var dataValue= events[i].dataValues[d];
+						var compositeScore=getCSByIdAndProgram(dataValue.dataElement,events[i].program);
+						if(compositeScore!=undefined){
+						if(debugDatavalues)
+							console.log(compositeScore);
+							if(events[i].compositeScores==undefined){
+								events[i].compositeScores=[];
+								events[i].compositeScores.push(compositeScore);
+								continue;
+							}
+							var isSaved=false;
+							for(var x=0;x<events[i].compositeScores.length;x++)
+								if(events[i].compositeScores[x].uid==compositeScore.uid)
+									isSaved=true;
+								if(!isSaved)
+									events[i].compositeScores.push(compositeScore);
+							continue;
+						}
+						//if the factor is in the value:
+						var indexOfFactor=dataValue.value.indexOf("[");
+						var endOfFactor=dataValue.value.lastIndexOf("]");
+						var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
+						if(question==undefined || question.option==undefined){
+							saveErrorValueWithoutQuestion(dataValue);
+							continue;
+						}
+						if(!isScored(question.option))
+							continue;
+						if(indexOfFactor!=-1 && endOfFactor!=-1){
+							dataValue.factor=dataValue.value.substring(indexOfFactor+1,endOfFactor);
+							events[i].dataValues[d]=saveDataValueFactor(dataValue,question);
+							continue;
+						}
+						else{
+							//if the value not had the factor:
+							if(question.optionSet==undefined){
+								if(debugDatavalues){
+									question.dataValue=dataValue.value;
+									dataValue.question=question.uid;
+									saveErrorValue(dataValue);
+									question.problem="not optionset";
+									saveErrorQuestion(question);
+								}
+								continue;
+							}
+							var optionSet=getOptionSetById(question.optionSet.id);
+							if(optionSet==undefined){
+								if(debugDatavalues){
+									question.dataValue=dataValue.value;
+									dataValue.question=question.uid;
+									saveErrorValue(dataValue);
+									question.problem="not optionset";
+									saveErrorQuestion(question);
+								}
+								continue;
+							}
+							//Sets the factor by code
+							for(var x=0;x<optionSet.options.length;x++){
+								//if the value is a option name
+								if(optionSet.options[x].name==dataValue.value){
+								var indexOfFactor=optionSet.options[x].code.indexOf("[");
+								var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
+
+								if(indexOfFactor!=-1 && endOfFactor!=-1){
+									dataValue.factor=optionSet.options[x].code.substring(indexOfFactor+1,endOfFactor);
+									//Calculate the dataValue numerator
+									events[i].dataValues[d]=saveDataValueFactor(dataValue,question);
+									continue;
+									}
+								}
+							}
+							//Sets the factor by name
+							for(var x=0;x<optionSet.options.length;x++){
+									//If the server save the value as YES [1] and the datavalue as YES
+									if(optionSet.options[x].code.indexOf(dataValue.value)!=-1){
+										var indexOfFactor=optionSet.options[x].code.indexOf("[");
+										var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
+
+										if(indexOfFactor!=-1 && endOfFactor!=-1){
+
+											dataValue.factor=optionSet.options[x].code.substring(indexOfFactor+1,endOfFactor);
+											//Calculate the dataValue numerator
+											events[i].dataValues[d]=saveDataValueFactor(dataValue,question);
+											continue;
+										}
+								}
+							}
+							continue;
+							}
+					}
+				}
+				if(debugDatavalues){
+					console.log(events);
+					console.log("error in questions")
+					console.log(errorQuestions);
+					console.log("error in dataValues")
+					console.log(errorDataValues);
+					console.log("error in dataValues without questions")
+					console.log(errorDataValuesWithoutQuestion);
+					
+				}
+			}
+
+			function saveDataValueFactor(dataValue,question){
+				if(dataValue.factor==1){
+					if(question.isParent!=undefined && question.isParent==true){
+						question.isShowed=true;
+					}
+				}
+				else{
+					if(question.isParent!=undefined && question.isParent==true){
+						question.isShowed=false;
+					}	
+				}
+				dataValue.sumFactor=question.numerator*dataValue.factor;
+				dataValue.compositeScore=question.compositeScore;
+				if(isNaN(dataValue.sumFactor)){
+					dataValue.sumFactor=0;
+					if(debugDatavalues){
+						question.dataValue=dataValue.value;
+						dataValue.question=question.uid;
+						question.problem="not numerator";
+						saveErrorValue(dataValue);
+						saveErrorQuestion(question);
+					}
+				}
+				return dataValue;
+			}
+
+
+			//Some debug variables and method to read the dataValues discarted of the calc.
 			var errorDataValues=[];
 
 			var errorDataValuesWithoutQuestion=[];
@@ -763,143 +905,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 			}
 
-			function isScored(value){
-				if(value==DROPDOWN_LIST || value==DROPDOWN_LIST_DISABLED || value==RADIO_GROUP_VERTICAL || value==RADIO_GROUP_HORIZONTAL)
-					return true;
-				return false;
-			}
-
-			function prepareDataValues(){
-				for(var i=0;i<events.length;i++){
-					for(var d=0;d<events[i].dataValues.length;d++){
-						var dataValue= events[i].dataValues[d];
-						var compositeScore=getCSByIdAndProgram(dataValue.dataElement,events[i].program);
-						if(compositeScore!=undefined){
-						if(debugDatavalues)
-							console.log(compositeScore);
-							if(events[i].compositeScores==undefined){
-								events[i].compositeScores=[];
-								events[i].compositeScores.push(compositeScore);
-								continue;
-							}
-							var isSaved=false;
-							for(var x=0;x<events[i].compositeScores.length;x++)
-								if(events[i].compositeScores[x].uid==compositeScore.uid)
-									isSaved=true;
-								if(!isSaved)
-									events[i].compositeScores.push(compositeScore);
-							continue;
-						}
-						//if the factor is in the value:
-						var indexOfFactor=dataValue.value.indexOf("[");
-						var endOfFactor=dataValue.value.lastIndexOf("]");
-						var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
-						if(question==undefined || question.option==undefined){
-							saveErrorValueWithoutQuestion(dataValue);
-							continue;
-						}
-						if(!isScored(question.option))
-							continue;
-						if(indexOfFactor!=-1 && endOfFactor!=-1){
-							dataValue.factor=dataValue.value.substring(indexOfFactor+1,endOfFactor);
-							//Calculate the dataValue numerator
-
-							events[i].dataValues[d]=saveDataValueFactor(dataValue,question);
-							continue;
-						}
-						else{
-							//if the value not had the factor:
-							if(question.optionSet==undefined){
-								question.dataValue=dataValue.value;
-								dataValue.question=question.uid;
-								saveErrorValue(dataValue);
-								question.problem="not optionset";
-								saveErrorQuestion(question);
-								continue;
-							}
-							var optionSet=getOptionSetById(question.optionSet.id);
-							if(optionSet==undefined){
-								question.dataValue=dataValue.value;
-								dataValue.question=question.uid;
-								saveErrorValue(dataValue);
-								question.problem="not optionset downloaded";
-								saveErrorQuestion(question);
-								continue;
-							}
-							//get factor by code
-							for(var x=0;x<optionSet.options.length;x++){
-								//if the value is a option name(normal)
-								if(optionSet.options[x].name==dataValue.value){
-								var indexOfFactor=optionSet.options[x].code.indexOf("[");
-								var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
-
-								if(indexOfFactor!=-1 && endOfFactor!=-1){
-									dataValue.factor=optionSet.options[x].code.substring(indexOfFactor+1,endOfFactor);
-									//Calculate the dataValue numerator
-									events[i].dataValues[d]=saveDataValueFactor(dataValue,question);
-									continue;
-									}
-								}
-							}
-							//get factor by name
-							for(var x=0;x<optionSet.options.length;x++){
-									//If the server save the value as YES [1] and the datavalue as YES
-									if(optionSet.options[x].code.indexOf(dataValue.value)!=-1){
-										var indexOfFactor=optionSet.options[x].code.indexOf("[");
-										var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
-
-										if(indexOfFactor!=-1 && endOfFactor!=-1){
-
-											dataValue.factor=optionSet.options[x].code.substring(indexOfFactor+1,endOfFactor);
-											//Calculate the dataValue numerator
-											events[i].dataValues[d]=saveDataValueFactor(dataValue,question);
-											continue;
-										}
-								}
-							}
-							continue;
-							}
-					}
-				}
-				if(debugDatavalues){
-					console.log(events);
-					console.log("error in questions")
-					console.log(errorQuestions);
-					console.log("error in dataValues")
-					console.log(errorDataValues);
-					console.log("error in dataValues without questions")
-					console.log(errorDataValuesWithoutQuestion);
-					
-				}
-			}
-
-			function saveDataValueFactor(dataValue,question){
-
-				if(dataValue.factor==1){
-					if(question.isParent!=undefined && question.isParent==true){
-						question.isShowed=true;
-					}
-				}
-				else{
-					if(question.isParent!=undefined && question.isParent==true){
-						question.isShowed=false;
-					}	
-				}
-				dataValue.sumFactor=question.numerator*dataValue.factor;
-				dataValue.compositeScore=question.compositeScore;
-				if(isNaN(dataValue.sumFactor)){
-					dataValue.sumFactor=0;
-					question.dataValue=dataValue.value;
-					dataValue.question=question.uid;
-					question.problem="not numerator";
-					saveErrorValue(dataValue);
-					saveErrorQuestion(question);
-				}
-				return dataValue;
-			}
-
-			//control the asyn calls
-			var eventsByprogramsDownloaded=0;
 			//Retrieve all events and upload it.
 			function downloadEventsByProgram(program, startdate, endDate){
 				allDownloaded++;
@@ -929,7 +934,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 											//checks if the metadta and the events was downloaded;
 											allDownloaded--;
 											if(allDownloaded==0){
-												preparePrograms();
+												uploadPrograms();
 											}
 										}
 									}
@@ -939,14 +944,12 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						else{	
 							//Only one page:
 							saveEvents(data);
-							//if(events!=undefined)
 							eventsByprogramsDownloaded--;
 							if(eventsByprogramsDownloaded==0){
 								if(events.length>=totalEvents){
-									//checks if the metadta and the events was downloaded;
 									allDownloaded--;
 									if(allDownloaded==0){
-										preparePrograms();
+										uploadPrograms();
 									}
 								}
 							}
@@ -954,7 +957,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					},function(){$scope.invalidProgram=true;});
 			}
 
-			//Add parent @parentCompositeScore in a child in the @compositeScores list
+			//Add the compositeScore parents @parentCompositeScore in a child in @compositeScores
 			function addParentInCompositeScore(compositeScores,parentCompositeScore){
 				for(var i=0;i<programs.length;i++){
 					for(var d=0;d<programs[i].programStages.length;d++){
@@ -976,13 +979,12 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 			}
 
+			//Prepare the event to sent new compositeScores for each event.
 			function sendEvents(){
 				var eventlenght=events.length;
 				eventlenght=1;
 				for(var i=0;i<eventlenght;i++){
-					//the patch needs some event dataValue.dataElement included in the dataValues array to work in the server side.
-					var dataElement=events[i].dataValues[0].dataElement;
-					console.log(events[i].dataValues);
+
 					var dataValues=[];
 					dataValues.dataValues=events[i].dataValues;
 					var Event= new Object;
@@ -1038,7 +1040,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 			}
 
-			//add parent for each compositeScore
+			//Add compositeScore parent relation.
 			function addParentsInAllCompositeScores(){
 				console.log("Adding CS parent relations");
 				for(var i=0;i<programs.length;i++){
@@ -1053,33 +1055,26 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 			}
 
-			function preparePrograms(){
-				console.log(programs);
-				console.log(events);
-				console.log("Prepare dataValues for each event");
+			//uploadPrograms prepare the dataValues, compositeScores, events, and send all the events.
+			function uploadPrograms(){
 				prepareDataValues();
 				addParentsInAllCompositeScores();
-				console.log("Prepare the compositeScore events");
 				prepareEvents();
 
 				if(debugDatavalues){
-					console.log(events);
-					console.log("error in questions")
+					console.log("Show errors in questions")
 					console.log(errorQuestions);
-					console.log("error in dataValues")
+					console.log("Show errors in dataValues")
 					console.log(errorDataValues);
-					console.log("error in dataValues without questions")
+					console.log("Show errors in dataValues without questions")
 					console.log(errorDataValuesWithoutQuestion);
-					
+					console.log("Show all programs");
+					console.log(programs);
+					console.log("Show all events");
+					console.log(events);
 				}
-				console.log("Update the compositeScore by Event");
-				console.log(programs);
-				console.log(events);
 				sendEvents();
 			}
 
 		}
-
-
-	
 }]);
