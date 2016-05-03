@@ -443,48 +443,98 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				return question;
 			}
 
-			//Calculate all the CompositeScore in a program with the stored (numerator*factor/denumerator) and calc the score.
-			function calculateCSScores(programUid){
-				for(var i=0;i<programs.length;i++){
-					if(programs[i].id==programUid){
-						calculateCSByDepth(programUid);
-						for(var d=0;d<programs[i].programStages.length;d++){
-							if(programs[i].programStages[d].compositeScores!=undefined){
-								for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
-									var compositeScore=programs[i].programStages[d].compositeScores[x];
-									var numerator=0;
-									if(compositeScore.numerator!=undefined){
-										numerator=compositeScore.numerator;
-									}
-									if(compositeScore.denominator!=undefined)
-										compositeScore.score=(numerator/compositeScore.denominator)*100;
-								}		
-							}
-						}			
-					}
-				}
-			}
 
-			//return the lowest depth value in compositeScore hierarchy.
-			function getLowestDepth(program){	
-				var depth=0;
+			//Prepare all the composite scores with the particular numerator/denominator for each event
+			function prepareEvents(){
+				console.log(events[i]);
+				for(var i=0;i<events.length;i++){
+					var compositeScores=undefined;
+					for(var d=0;d<programs.length;d++){
+						if(programs[d].id==events[i].program){
 
-				for(var d=0;d<program.programStages.length;d++){
-					if(program.programStages[d].compositeScores!=undefined){
-						for(var x=0;x<program.programStages[d].compositeScores.length;x++){
-							if(program.programStages[d].compositeScores[x].hasChildren==undefined){
-								if(program.programStages[d].compositeScores[x].depth>depth){
-									depth=program.programStages[d].compositeScores[x].depth;
+							var compositeScoresEvent=undefined;
+							//Add the compositeScores in each event.
+							compositeScoresEvent=programs[d].programStages[0].compositeScores;
+							if(programs[d].programStages.length>1){
+								for(var x=1;x<programs[d].programStages.length;x++){
+									compositeScoresEvent=compositeScoresEvent.concat(programs[d].programStages[x].compositeScores);
 								}
 							}
-						}		
+							prepareCompositeScores(compositeScoresEvent,events[i]);
+							
+							//Calculate the event CS and store in the event and clear the CS
+							updateScores(events[i]);
+						}
 					}
-				}	
-				return depth;	
+				}
+				console.log("CS saved in event");
+				console.log(events[i]);
+			}
+			
+			//Add denominators, numerators, and calcule CS Scores.
+			function prepareCompositeScores(compositeScoresEvent,event){
+				//Store the question denominators in CS
+				addDenominatorInCS();
+				//propage the child CS to the parent CS denominator
+				propageChildrenDenominators();
+				//add the numerators from the event data values
+				addNumeratorInCS(compositeScoresEvent,event.dataValues);
+				//calculate the compositeScores
+				calculateCSScores(event.program);
 			}
 
-			//Fixme review parent/child
-			//Propage the CompositeScore children denominator to the parent denominator, from lower level to upper level.
+
+			//Adds all the question denominators to the question composite score.
+			function addDenominatorInCS(){
+			console.log("AddingQuestionsDenominators");
+			for(var i=0;i<programs.length;i++){
+					for(var d=0;d<programs[i].programStages.length;d++){
+						if(programs[i].programStages[d].questions!=undefined){
+							for(var y=0;y<programs[i].programStages[d].questions.length;y++){
+								var question=programs[i].programStages[d].questions[y]; 
+								if(question.denominator!=undefined){
+									//Discard not scored questions
+									if(!isScored(question.option))
+										continue;
+									//Discard children not visible questions:
+									if(question.isChild!=undefined && question.isChild==true && question.parent.isShowed==false){
+										continue;
+									}
+
+									//Find the question CompositeScore and add the denominator.
+									for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
+										if(question.compositeScore==undefined){
+											if(debugDataValues)
+												saveErrorQuestionWithoutCS(question);
+											continue;
+										}
+										var localCompositeScore=programs[i].programStages[d].compositeScores[x];
+										if(localCompositeScore.hierarchy==question.compositeScore){
+											if(localCompositeScore.denominator==undefined){
+												//To cast a string to number is necesary: (+value)
+												localCompositeScore.denominator=(+question.denominator);
+												continue;
+											}
+											else{
+												//To cast a string to number is necesary: (+value)
+												programs[i].programStages[d].compositeScores[x].denominator=(localCompositeScore.denominator)+(+question.denominator);
+												continue;
+											}
+										}											
+									}
+								}
+							}
+						}
+					} 
+				}
+				if(debugDatavalues){
+					console.log("question without compositescore");
+					console.log(errorQuestionsWithoutCS);
+					}
+			};
+
+
+			//Propage the stored CompositeScore denominator to the parent denominator, from lower level to upper level.
 			function propageChildrenDenominators(){
 				for(var i=0;i<programs.length;i++){
 					depth=getLowestDepth(programs[i]);
@@ -514,12 +564,56 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				console.log("Added all denominators");
 			}
 
+
+
+			//Adds the compositeScore numerator number reading the saved (numerator*factor) datavalue.
+			function addNumeratorInCS(compositeScores,dataValues){
+				for(var i=0;i<dataValues.length;i++){
+
+					if(dataValues[i].factor!=undefined){
+						for(var d=0;d<compositeScores.length;d++){
+							if(dataValues[i].compositeScore!=undefined){
+								if(dataValues[i].compositeScore==compositeScores[d].hierarchy){
+									if(debugDatavalues){
+										console.log(dataValues[i].CompositeScore);
+										console.log(dataValues[i].sumFactor);
+									}
+										if(compositeScores[d].numerator==undefined)
+											compositeScores[d].numerator=dataValues[i].sumFactor;
+										else
+											compositeScores[d].numerator+=dataValues[i].sumFactor;
+									}
+							}
+						}
+					}
+
+				}
+				return compositeScores;
+			};
+
+			//return the lowest depth value in compositeScore hierarchy.
+			function getLowestDepth(program){	
+				var depth=0;
+
+				for(var d=0;d<program.programStages.length;d++){
+					if(program.programStages[d].compositeScores!=undefined){
+						for(var x=0;x<program.programStages[d].compositeScores.length;x++){
+							if(program.programStages[d].compositeScores[x].hasChildren==undefined){
+								if(program.programStages[d].compositeScores[x].depth>depth){
+									depth=program.programStages[d].compositeScores[x].depth;
+								}
+							}
+						}		
+					}
+				}	
+				return depth;	
+			}
 			//Calculate the CompositeScores from the lower compositeScorehirearchy, level by level.
 			//Example: Calculate all the 1.1.1 1.1.2 1.1.3 and propage the num/denum to 1.1 for each one.
 			function calculateCSByDepth(programUid){
 				for(var i=0;i<programs.length;i++){
 					if(programs[i].id==programUid){
-						//get the 
+						//get the first level
 						depth=getLowestDepth(programs[i]);
 
 						//Add numerator/denominator from children to parents by depth
@@ -533,6 +627,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 											if(compositeScore.depth==actualDepth){
 												if(compositeScore.parent!=undefined){
 													if(compositeScore.numerator!=undefined){
+														//save the numerator in the parent
 														if(compositeScore.parent.numerator==undefined){
 															compositeScore.parent.numerator=compositeScore.numerator;
 														}
@@ -549,6 +644,29 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						if(debugDatavalues==true)
 							console.log("Calculated Composite Scores");
 							console.log(programs[i].programStages);
+					}
+				}
+			}
+
+
+			//Calculate all the CompositeScore in a program with the stored (numerator*factor/denumerator) and calc the score.
+			function calculateCSScores(programUid){
+				for(var i=0;i<programs.length;i++){
+					if(programs[i].id==programUid){
+						calculateCSByDepth(programUid);
+						for(var d=0;d<programs[i].programStages.length;d++){
+							if(programs[i].programStages[d].compositeScores!=undefined){
+								for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
+									var compositeScore=programs[i].programStages[d].compositeScores[x];
+									var numerator=0;
+									if(compositeScore.numerator!=undefined){
+										numerator=compositeScore.numerator;
+									}
+									if(compositeScore.denominator!=undefined)
+										compositeScore.score=(numerator/compositeScore.denominator)*100;
+								}		
+							}
+						}			
 					}
 				}
 			}
@@ -599,108 +717,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				}
 			}
 
-			//Add denominators, numerators, and calcule CS Scores.
-			function prepareCompositeScores(compositeScoresEvent,event){
-				//Store the question denominators in CS
-				addDenominatorInCS();
-				//propage the child CS to the parent CS denominator
-				propageChildrenDenominators();
-				//add the numerators from the event data values
-				addNumeratorInCS(compositeScoresEvent,event.dataValues);
-				//calculate the compositeScores
-				calculateCSScores(event.program);
-			}
-
-			//Prepare all the composite scores with the particular numerator/denominator for each event
-			function prepareEvents(){
-				console.log(events[i]);
-				for(var i=0;i<events.length;i++){
-					var compositeScores=undefined;
-					for(var d=0;d<programs.length;d++){
-						if(programs[d].id==events[i].program){
-
-							var compositeScoresEvent=undefined;
-							var compositeScoresScored=undefined;
-							var compositeScoreRoot=undefined;
-							var compositeScoresOrdered=undefined;
-							//Fixme programStage[0]
-							compositeScoresEvent=programs[d].programStages[0].compositeScores;
-							prepareCompositeScores(compositeScoresEvent,events[i]);
-							//add the cs score in the event and clear the score
-							updateScores(events[i]);
-						}
-					}
-				}
-				console.log("CS saved in event");
-				console.log(events[i]);
-			}
-
-			//Adds the compositeScore numerator number reading the saved (numerator*factor) datavalue.
-			function addNumeratorInCS(compositeScores,dataValues){
-				for(var i=0;i<dataValues.length;i++){
-
-					if(dataValues[i].factor!=undefined){
-						for(var d=0;d<compositeScores.length;d++){
-							if(dataValues[i].compositeScore!=undefined){
-								if(dataValues[i].compositeScore==compositeScores[d].hierarchy){
-										if(compositeScores[d].numerator==undefined)
-											compositeScores[d].numerator=dataValues[i].sumFactor;
-										else
-											compositeScores[d].numerator+=dataValues[i].sumFactor;
-									}
-							}
-						}
-					}
-
-				}
-				return compositeScores;
-			};
-
-			//Adds all the question denominators for one composite score in that compositescore for each program.
-			function addDenominatorInCS(){
-			console.log("AddingQuestionsDenominators");
-			for(var i=0;i<programs.length;i++){
-					for(var d=0;d<programs[i].programStages.length;d++){
-						if(programs[i].programStages[d].questions!=undefined){
-							for(var y=0;y<programs[i].programStages[d].questions.length;y++){
-								var question=programs[i].programStages[d].questions[y]; 
-								if(question.denominator!=undefined){
-									//search the question compositeScore if is a computable question.
-									if(programs[i].programStages[d].compositeScores!=undefined){
-										for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
-											if(programs[i].programStages[d].questions[y].compositeScore==undefined){
-												if(debugDataValues)
-													saveErrorQuestionWithoutCS(programs[i].programStages[d].questions[y]);
-												continue;
-											}
-											var localHierarchy=programs[i].programStages[d].questions[y].compositeScore.split(CS_TOKEN);
-											var localCompositeScore=programs[i].programStages[d].compositeScores[x].hierarchy;
-											if(localCompositeScore==question.compositeScore){
-												//if a question is child and the question parent is not showed that question is ignored.
-												if(question.isChild==undefined || question.parent.isShowed==true){
-													if(programs[i].programStages[d].compositeScores[x].denominator==undefined){
-														//To cast a string to number is necesary add +
-														programs[i].programStages[d].compositeScores[x].denominator=(+question.denominator);
-														continue;
-													}
-													else{
-														programs[i].programStages[d].compositeScores[x].denominator=(programs[i].programStages[d].compositeScores[x].denominator)+(+question.denominator);
-														continue;
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					} 
-				}
-				if(debugDatavalues)
-					console.log("question without compositescore");
-					console.log(errorQuestionsWithoutCS);
-			};
-
 			//Discard the questions without this options.
 			function isScored(value){
 				if(value==DROPDOWN_LIST || value==DROPDOWN_LIST_DISABLED || value==RADIO_GROUP_VERTICAL || value==RADIO_GROUP_HORIZONTAL)
@@ -711,8 +727,11 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			//Add the numerator*factor value in the dataValue.
 			function prepareDataValues(){
 				for(var i=0;i<events.length;i++){
+					if(events[i].dataValues==undefined)
+						continue;
 					for(var d=0;d<events[i].dataValues.length;d++){
 						var dataValue= events[i].dataValues[d];
+						//Discard the CompositeScores values, and add in the event compositeScore list to be updated at the end.
 						var compositeScore=getCSByIdAndProgram(dataValue.dataElement,events[i].program);
 						if(compositeScore!=undefined){
 						if(debugDatavalues)
@@ -730,45 +749,51 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 									events[i].compositeScores.push(compositeScore);
 							continue;
 						}
-						//if the factor is in the value:
-						var indexOfFactor=dataValue.value.indexOf("[");
-						var endOfFactor=dataValue.value.lastIndexOf("]");
 						var question=getQuestionByIdAndProgram(dataValue.dataElement,events[i].program);
 						if(question==undefined || question.option==undefined){
 							saveErrorValueWithoutQuestion(dataValue);
 							continue;
 						}
+						//discard the question if isn't scored question.
 						if(!isScored(question.option))
 							continue;
+
+						//Try to extract the factor from the DataValue value.
+						var indexOfFactor=dataValue.value.indexOf("[");
+						var endOfFactor=dataValue.value.lastIndexOf("]");
 						if(indexOfFactor!=-1 && endOfFactor!=-1){
 							dataValue.factor=dataValue.value.substring(indexOfFactor+1,endOfFactor);
 							events[i].dataValues[d]=saveDataValueFactor(dataValue,question);
 							continue;
 						}
 						else{
-							//if the value not had the factor:
+							//If the factor isn't in the DataValue value extracts it from the question optionSet.
+
 							if(question.optionSet==undefined){
+								//if the question don't have optionset discard it.
 								if(debugDatavalues){
 									question.dataValue=dataValue.value;
 									dataValue.question=question.uid;
 									saveErrorValue(dataValue);
-									question.problem="not optionset";
+									question.problem="the question don't have optionset";
 									saveErrorQuestion(question);
 								}
 								continue;
 							}
+
 							var optionSet=getOptionSetById(question.optionSet.id);
 							if(optionSet==undefined){
+								//if the question optionset is not downloaded discard it.
 								if(debugDatavalues){
 									question.dataValue=dataValue.value;
 									dataValue.question=question.uid;
 									saveErrorValue(dataValue);
-									question.problem="not optionset";
+									question.problem="the donwloaded optionset not found";
 									saveErrorQuestion(question);
 								}
 								continue;
 							}
-							//Sets the factor by code
+							//try to estract the factor from the option code.
 							for(var x=0;x<optionSet.options.length;x++){
 								//if the value is a option name
 								if(optionSet.options[x].name==dataValue.value){
@@ -783,7 +808,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 									}
 								}
 							}
-							//Sets the factor by name
+							//try to extract the factor from the option code
 							for(var x=0;x<optionSet.options.length;x++){
 									//If the server save the value as YES [1] and the datavalue as YES
 									if(optionSet.options[x].code.indexOf(dataValue.value)!=-1){
@@ -816,18 +841,23 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			}
 
 			function saveDataValueFactor(dataValue,question){
+				//The children questions will seek the parent variable "isShowed" from their parents to find out if they are computable.
 				if(dataValue.factor==1){
 					if(question.isParent!=undefined && question.isParent==true){
+						//If the factor is 1 the parent is selected.
 						question.isShowed=true;
 					}
 				}
 				else{
 					if(question.isParent!=undefined && question.isParent==true){
+						//If the factor isn't 1, the parent isn't selected.
 						question.isShowed=false;
 					}	
 				}
+				//the dataValue sum factor is used to add the event numerators in the compositeScores.
 				dataValue.sumFactor=question.numerator*dataValue.factor;
 				dataValue.compositeScore=question.compositeScore;
+				//If the question don't have numerator this calc is NaN and it should be 0.
 				if(isNaN(dataValue.sumFactor)){
 					dataValue.sumFactor=0;
 					if(debugDatavalues){
@@ -984,7 +1014,9 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				var eventlenght=events.length;
 				eventlenght=1;
 				for(var i=0;i<eventlenght;i++){
-
+					if(events[i].dataValues==undefined)
+						continue;
+					
 					var dataValues=[];
 					dataValues.dataValues=events[i].dataValues;
 					var Event= new Object;
@@ -1045,11 +1077,9 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				console.log("Adding CS parent relations");
 				for(var i=0;i<programs.length;i++){
 					for(var d=0;d<programs[i].programStages.length;d++){
-						if(programs[i].programStages[d].questions!=undefined){
-							for(var y=0;y<programs[i].programStages[d].compositeScores.length;y++){
-								var compositeScore=programs[i].programStages[d].compositeScores[y];
-								addParentInCompositeScore(programs[i].programStages[d].compositeScores,compositeScore);
-							}
+						for(var y=0;y<programs[i].programStages[d].compositeScores.length;y++){
+							var compositeScore=programs[i].programStages[d].compositeScores[y];
+							addParentInCompositeScore(programs[i].programStages[d].compositeScores,compositeScore);
 						}
 					} 
 				}
