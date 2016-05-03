@@ -17,7 +17,7 @@
    along with Project Manager.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "commonvariable", '$timeout', 'ProgramsList', 'CheckProgram', 'EventsByProgram', 'ProgramStageDataElementsByProgramStage', 'DataElementsByProgramStageDataElements', 'OptionsSets', 'PatchEvent', function($scope, $filter, commonvariable, $timeout, ProgramsList, CheckProgram, EventsByProgram, ProgramStageDataElementsByProgramStage, DataElementsByProgramStageDataElements, OptionsSets, PatchEvent) {
+dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "commonvariable", '$timeout', 'ProgramsList', 'CheckProgram', 'EventsByProgram', 'ProgramStageDataElementsByProgramStage', 'DataElementsByProgramStageDataElements', 'OptionsSets', 'UpdateEvent', function($scope, $filter, commonvariable, $timeout, ProgramsList, CheckProgram, EventsByProgram, ProgramStageDataElementsByProgramStage, DataElementsByProgramStageDataElements, OptionsSets, UpdateEvent) {
 
 	var $translate = $filter('translate');
 
@@ -555,6 +555,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 
 			function updateScores(event){
 				//Clear dataValues
+				event.oldDataValues=event.dataValues;
 				delete event.dataValues;
 				for(var i=0;i<programs.length;i++){
 					if(programs[i].id==event.program){
@@ -976,11 +977,63 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			}
 
 			function sendEvents(){
-				for(var i=0;i<events.length;i++){
+				var eventlenght=events.length;
+				eventlenght=1;
+				for(var i=0;i<eventlenght;i++){
 					//the patch needs some event dataValue.dataElement included in the dataValues array to work in the server side.
-					var dataElement=events[i].dataValues[0].dataelement;
-					console.log(events[i]);
-					PatchEvent.patch({eventuid:events[id].event,dataValueUid:events[i].dataValues[0]});
+					var dataElement=events[i].dataValues[0].dataElement;
+					console.log(events[i].dataValues);
+					var dataValues=[];
+					dataValues.dataValues=events[i].dataValues;
+					var Event= new Object;
+
+					Event.event=events[i].event;
+
+					Event.lastUpdated=events[i].lastUpdated;
+
+					Event.notes=events[i].notes;
+
+					Event.dueDate=events[i].dueDate;
+
+					Event.program=events[i].program;
+
+					Event.enrollment=events[i].enrollment;
+
+					Event.lastUpdated=events[i].lastUpdated;
+
+					Event.orgUnit=events[i].orgUnit;
+
+					Event.followup=events[i].followup;
+
+					Event.enrollmentStatus=events[i].enrollmentStatus;
+
+					Event.storedBy=events[i].storedBy;
+
+					Event.programStage=events[i].programStage;
+
+					Event.tackedEntityInstance=events[i].tackedEntityInstance;
+
+					Event.eventDate=events[i].eventDate;
+
+					Event.created=events[i].created;
+
+					Event.href=events[i].href;
+
+					Event.status=events[i].status;
+
+					Event.orgUnitName=events[i].orgUnitName;
+
+					Event.coordinate=events[i].coordinate;
+					for(var x=0;x<events[i].dataValues.length;x++){
+						var isActive=false;
+						for(var d=0;d<events[i].compositeScores.length;d++){
+							if(events[i].dataValues[x].dataElement==events[i].compositeScores[d].uid){
+								dataValues.push(events[i].dataValues[x]);
+							}
+						}
+					}
+					Event.dataValues=dataValues;
+					UpdateEvent.post(Event);
 					break;
 				}
 			}
