@@ -459,6 +459,11 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			//Prepare all the composite scores with the particular numerator/denominator for each event
 			function prepareEvents(){
 				for(var i=0;i<events.length;i++){
+					if(events[i].dataValues==undefined){
+						console.log("event without dataValues");
+						console.log(event[i]);
+						continue;
+					}
 					var compositeScores=undefined;
 					for(var d=0;d<programs.length;d++){
 						if(programs[d].id==events[i].program){
