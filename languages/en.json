@@ -13,6 +13,7 @@
 	"LOGIN_ERROR": "Error. Are you logged?",
 	"IN_PROGRESS": "In progress",
 	"DOWNLOADING_DATAELEMENTS": "Retrieving dataelements...",
-	"DOWNLOADING_EVENTS": "Retrieving events..."
+	"DOWNLOADING_EVENTS": "Retrieving events...",
+	"FINISH":"Events have been updated successfully"
 	
 }
