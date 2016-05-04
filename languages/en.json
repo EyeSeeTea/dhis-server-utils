@@ -14,6 +14,7 @@
 	"IN_PROGRESS": "In progress",
 	"DOWNLOADING_DATAELEMENTS": "Retrieving dataelements...",
 	"DOWNLOADING_EVENTS": "Retrieving events...",
-	"FINISH":"Events have been updated successfully"
-	
+	"FINISH":"Events have been updated successfully",
+	"ERROR_UPLOADING_EVENT":"Error uploading events",
+	"NO_EVENTS":"No events."
 }
