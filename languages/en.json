@@ -13,8 +13,11 @@
 	"LOGIN_ERROR": "Error. Are you logged?",
 	"IN_PROGRESS": "In progress",
 	"DOWNLOADING_DATAELEMENTS": "Retrieving dataelements...",
+	"CALCULATING_SCORES": "Calculating scores...",
 	"DOWNLOADING_EVENTS": "Retrieving events...",
 	"FINISH":"Events have been updated successfully",
 	"ERROR_UPLOADING_EVENT":"Error uploading events",
-	"NO_EVENTS":"No events."
+	"NO_EVENTS":"No events.",
+	"SENDING":"Events pushed ",
+	"OF":" of "
 }

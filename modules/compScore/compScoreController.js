@@ -76,7 +76,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				$scope.finish=false;
 				$scope.errorUploading=false;
 				$scope.noevents=false;
-				angular.element(document.querySelector('#progressbar')).val('IN_PROGRESS');
+				angular.element(document.querySelector('#progressbar>div>span')).text($translate('IN_PROGRESS'));
 				//Parse date
 				var start_date=$filter('date')($scope.start_date,'yyyy-MM-dd');
 				var end_date=$filter('date')($scope.end_date,'yyyy-MM-dd');
@@ -1011,7 +1011,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				var totalPage=0;
 				eventsByprogramsDownloaded++;
 				console.log("Upload Events by program");
-				//angular.element(document.querySelector('#progressbar')).val({{ 'DOWNLOADING_EVENTS' | translate }});
+				angular.element(document.querySelector('#progressbar>div>span')).text($translate('DOWNLOADING_EVENTS'));
 				resultEvent = EventsByProgram.get({program:program,startDate:startdate,endDate:endDate,page:page});
 				resultEvent.$promise.then(function(data) {
 						totalPage=data.pager.pageCount;
@@ -1179,6 +1179,9 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						if(removeEventFromQueue(sentEvent))
 						{
 							uploadedEvents++;
+							var value=$translate('SENDING')+uploadedEvents+$translate('OF')+events.length;
+							angular.element(document.querySelector('#progressbar>div>span')).text(value);
+							$scope.progressbarDisplayed
 							console.log("sent:"+uploadedEvents+ " from "+events.length);
 							if(events.length==uploadedEvents){
 								//All the event was send
@@ -1258,6 +1261,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 
 			//uploadPrograms prepare the dataValues, compositeScores, events, and send all the events.
 			function uploadPrograms(){
+				angular.element(document.querySelector('#progressbar>div>span')).text($translate('CALCULATING_SCORES'));
 				addParentsInAllCompositeScores();
 				console.log("prepare all events");
 				prepareEvents();
