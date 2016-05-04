@@ -36,7 +36,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			
 			$scope.submit=function(){
 				
-				var debug=true;
+				var debug=false;
 
 				//SERVER VALUES
 				var SERVER_ATTRIBUTE_UID="IMVz39TtAHM";
@@ -211,7 +211,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 									saveProgramStageDataElements(data);
 									totalProgramStages--;
 									if(totalProgramStages==0){
-										console.log("program stages sections donwloaded");
+										console.log("program stages donwloaded");
 										console.log(programs);
 										downloadMetadataByProgramStageDataElement();
 				 					}
@@ -232,6 +232,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 									controlProgramStageDataelementsDownloaded--;
 									if(controlProgramStageDataelementsDownloaded==0){
 										console.log("Finish DataElements from programStageDataElement");
+										console.log(programs);
 										buildAllDataElements();
 										allDownloaded--;
 										if(allDownloaded==0){
@@ -717,7 +718,11 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 										if(event.debugCompositeScores==undefined){
 											event.debugCompositeScores=[];
 										}
-										event.debugCompositeScores.push(jQuery.extend({},compositeScore));
+										var debugCompositeScore=jQuery.extend({},compositeScore);
+										event.debugCompositeScores.push(jQuery.extend({},debugCompositeScore));
+										delete compositeScore.addedQuestions;
+										delete compositeScore.debugDataValues;
+										delete compositeScore.debugnumerator;
 									}
 								}		
 							}
