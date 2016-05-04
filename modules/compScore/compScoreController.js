@@ -38,6 +38,10 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				
 				var debug=false;
 
+				//postEventsRequestLimit is the maximum number of simultaneous POST requests queue
+
+				var postEventsRequestLimit=50;
+
 				//SERVER VALUES
 				var SERVER_ATTRIBUTE_UID="IMVz39TtAHM";
 				var COMPOSITE_SCORE="93";
@@ -1144,26 +1148,101 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						console.log("send event:");
 						console.log(Event);
 					}
+					eventsReady.push(Event);
+				}
+				for(var i=0;i<postEventsRequestLimit;i++){
+						if(eventsReady[i]!=undefined){
+							Event=eventsReady.pop();
+							pendingEvents.push(Event);
+							pushEvent(Event);
+						}
+				}
+			}
 
-					resultUploadedEvent=UpdateEvent.post(Event);
+			//The sent events are controlled with the next lists:
+			//"eventsReady" that contains all the event to be send.
+			//"pendingEvents" is the list with all the sent events, they are waiting the server response by each event.
+			//If the event was saved in the server is removed from this list, and one event from "eventsReady" is sent and move to "pendingEvents"
+			//At the end: if pendingEvents have events, they are sent but not confirmed.
+			//At the end: if eventsReady have events, they was prepared to be sent but never sent.
+			var eventsReady=[];
+			var pendingEvents=[];
+			function pushEvent(Event){
+				resultUploadedEvent=UpdateEvent.post(Event);
 
-					resultUploadedEvent.$promise.then(function(data) {
-						if(data.httpStatusCode==200){
+				resultUploadedEvent.$promise.then(function(data) {
+					if(data.httpStatusCode==200){
+						if(data.response.importSummaries!=undefined)
+							if(data.response.importSummaries[0].reference!=undefined)
+								var sentEvent=data.response.importSummaries[0].reference;
+						//Try to remove the event uid from pending
+						if(removeEventFromQueue(sentEvent))
+						{
 							uploadedEvents++;
+							console.log("sent:"+uploadedEvents+ " from "+events.length);
 							if(events.length==uploadedEvents){
-								$scope.finish=true;
+								//All the event was send
+								showLog();
+								if(pendingEvents.length>0){
+									//All the events in the pending event list was send.
+									$scope.errorUploading=true;	
+								}
+								else
+									$scope.finish=true;
 								$scope.progressbarDisplayed = false;
+							}
+							else{
+								//move next event from eventsReady to pendingevents and push it.
+								if(eventsReady.length>0){
+									Event=eventsReady.pop();
+									console.log(Event);
+									pendingEvents.push(Event);
+									pushEvent(Event);
+								}
 							}
 						}
 						else{
+							//If the eventuid in the importsummaries is not in the pendingevent list:
+							showLog();
 							$scope.errorUploading=true;	
 							console.log("failed sending event:");
 							console.log(Event);
 						}
+					}
+					else{
+						//If the post event fail
+						showLog();
+						$scope.errorUploading=true;	
+						console.log("failed sending event:");
+						console.log(Event);
+					}
 				},function(){$scope.errorUploading=true;});
-				}
 			}
-				
+
+			//Remove the eventuid from the pendingevents list
+			function removeEventFromQueue(eventuid){
+				for(var i=0;i<pendingEvents.length;i++){
+					if(pendingEvents[i].event==eventuid){
+						pendingEvents.splice(i,1);
+						pendingEvents=removeUndefinedFromArray(pendingEvents);
+						console.log(pendingEvents);
+						return true;
+					}
+				}
+				return false;
+			}
+
+			//removes all the undefined values from array
+			function removeUndefinedFromArray(array){
+				var newArray=[];
+				var element;
+				for(element in array){
+					if(array[element]!=undefined){
+						newArray.push(array[element]);
+					}	
+				}
+				return newArray;
+			}
 
 			//Add compositeScore parent relation.
 			function addParentsInAllCompositeScores(){
@@ -1196,10 +1275,16 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 					console.log(events);
 				}
 				sendEvents();
+			}
+			function showLog(){
 				console.log("Show all programs");
 				console.log(programs);
 				console.log("Show all events");
 				console.log(events);
+				console.log("Pending events in queue");
+				console.log(pendingEvents);
+				console.log("Ready but not sent");
+				console.log(eventsReady);
 			}
 
 		}
