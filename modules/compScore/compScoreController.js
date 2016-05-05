@@ -548,32 +548,35 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 										}
 										continue;
 									}
-									//Discard children not visible questions:
-									if(question.isChild!=undefined && question.isChild==true && question.parent.isShowed==false){
+									//discard question without Compositescore
+									if(question.compositeScore==undefined){
 										if(debug){
 											if(event.discartedQuestions==undefined){
 												event.discartedQuestions=[];
 											}
 											event.discartedQuestions.push(jQuery.extend({},question));
 										}
+										if(debug)
+											saveErrorQuestionWithoutCS(question);
 										continue;
 									}
 
 									//Find the question CompositeScore and add the denominator.
 									for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
-										if(question.compositeScore==undefined){
-											if(debug){
-												if(event.discartedQuestions==undefined){
-													event.discartedQuestions=[];
-												}
-												event.discartedQuestions.push(jQuery.extend({},question));
-											}
-											if(debug)
-												saveErrorQuestionWithoutCS(question);
-											continue;
-										}
 										var localCompositeScore=programs[i].programStages[d].compositeScores[x];
 										if(localCompositeScore.hierarchy==question.compositeScore){
+
+											//Discard children not visible questions:
+											if(question.isChild!=undefined && question.isChild==true && question.parent.isShowed==false){
+												if(debug){
+													if(localCompositeScore.discartedQuestions==undefined){
+														localCompositeScore.discartedQuestions=[];
+													}
+													localCompositeScore.discartedQuestions.push(jQuery.extend({},question));
+												}
+												continue;
+											}
+
 											if(localCompositeScore.denominator==undefined){
 												//To cast a string to number is necesary: (+value)
 												localCompositeScore.denominator=(+question.denominator);
@@ -782,9 +785,9 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			function clearParentQuestions(){
 				for(var i=0;i<programs.length;i++){
 					for(var d=0;d<programs[i].programStages.length;d++){
-						for(var x=0;x<programs[i].programStages[d].question;x++){
-							if(programs[i].programStages[d].question.isParent!=undefined){
-								programs[i].programStages[d].question.isShowed=false;
+						for(var x=0;x<programs[i].programStages[d].questions.length;x++){
+							if(programs[i].programStages[d].questions[x].isParent!=undefined){
+								programs[i].programStages[d].questions[x].isShowed=false;
 							}
 						}
 					}
