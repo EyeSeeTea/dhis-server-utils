@@ -36,8 +36,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			
 			$scope.submit=function(){
 				
-				var debug=true;
-				var debugEventFilter="XnVHajZNSR1";
+				var debug=false;
+				var debugEventFilter="";
 				//postEventsRequestLimit is the maximum number of simultaneous POST requests queue
 
 				var postEventsRequestLimit=50;
@@ -489,7 +489,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						console.log(events[i]);
 						continue;
 					}
-					
+
+					//checks each question(not scoreded too) for hide childrens.
 					showOrHideChildrens(events[i]);
 
 					//Prepare dataValues(find the factor) and store (num*factor) in the event(and show/hide the questions with relations parent/child).
@@ -814,6 +815,93 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				return (value!=undefined && (value==DROPDOWN_LIST || value==DROPDOWN_LIST_DISABLED || value==RADIO_GROUP_VERTICAL || value==RADIO_GROUP_HORIZONTAL))
 			}
 
+			//show and hide the parents in all the questions(not scored.. not CS.. etc)
+
+
+			//sets the parent as show
+			function showOrHideChildrens(event){
+
+					if(event.dataValues==undefined)
+						return;
+					for(var d=0;d<event.dataValues.length;d++){
+						var dataValue= event.dataValues[d];
+
+					var question=getQuestionByIdAndProgram(dataValue.dataElement,event.program);
+						if(question==undefined){
+							continue;
+						}
+					if(question.isParent!=undefined){
+						console.log(question);
+						//Try to extract the factor from the DataValue value.
+						var indexOfFactor=dataValue.value.indexOf("[");
+						var endOfFactor=dataValue.value.lastIndexOf("]");
+						if(indexOfFactor!=-1 && endOfFactor!=-1){
+							dataValue.factor=dataValue.value.substring(indexOfFactor+1,endOfFactor);
+							if(dataValue.factor>0){
+								question.isShowed=true;
+							}
+							else{
+								question.isShowed=false;
+							}
+						}
+						else{
+							//If the factor isn't in the DataValue value extracts it from the question optionSet.
+
+							if(question.optionSet==undefined){
+								//if the question don't have optionset discard it.
+								continue;
+							}
+
+							var optionSet=getOptionSetById(question.optionSet.id);
+							if(optionSet==undefined){
+								//if the question optionset is not downloaded discard it.
+								continue;
+							}
+							//try to estract the factor from the option code.
+							for(var x=0;x<optionSet.options.length;x++){
+								//if the value is a option name
+								if(optionSet.options[x].name==dataValue.value){
+								var indexOfFactor=optionSet.options[x].code.indexOf("[");
+								var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
+
+								if(indexOfFactor!=-1 && endOfFactor!=-1){
+									dataValue.factor=optionSet.options[x].code.substring(indexOfFactor+1,endOfFactor);
+									//Calculate the dataValue numerator
+									if(dataValue.factor>0){
+										question.isShowed=true;
+									}
+									else{
+										question.isShowed=false;
+									}
+									continue;
+									}
+								}
+							}
+							//try to extract the factor from the option code
+							for(var x=0;x<optionSet.options.length;x++){
+									//If the server save the value as YES [1] and the datavalue as YES
+									if(optionSet.options[x].code.indexOf(dataValue.value)!=-1){
+										var indexOfFactor=optionSet.options[x].code.indexOf("[");
+										var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
+										if(indexOfFactor!=-1 && endOfFactor!=-1){
+
+											dataValue.factor=optionSet.options[x].code.substring(indexOfFactor+1,endOfFactor);
+											if(dataValue.factor>0){
+												question.isShowed=true;
+											}
+											else{
+												question.isShowed=false;
+											}
+										continue;
+									}
+								}
+							}
+						}
+
+					}
+				}
+
+			}
 			//Add the numerator*factor value in the dataValue.
 			function prepareDataValuesByEvent(event){
 					if(event.dataValues==undefined)
