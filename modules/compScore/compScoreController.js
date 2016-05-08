@@ -36,8 +36,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			
 			$scope.submit=function(){
 				
-				var debug=false;
-
+				var debug=true;
+				var debugEventFilter="XnVHajZNSR1";
 				//postEventsRequestLimit is the maximum number of simultaneous POST requests queue
 
 				var postEventsRequestLimit=50;
@@ -350,7 +350,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						else{
 							if(debug==true){
 								console.log("Error? no question and not composite score");
-								console.log(dataElement);
+								console.log(data);
 							}
 						}
 					}
@@ -410,10 +410,19 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 			function saveEvents(data){
 				if(data.events!=undefined){
 					if(events==undefined){
-						events=data.events;
+						events=[];
 					}
-					else{
-						for(var i=0;i<data.events.length;i++){
+					for(var i=0;i<data.events.length;i++){
+						if(debug)
+							if(debugEventFilter!=""){
+								if(data.events[i].event==debugEventFilter){
+									events.push(data.events[i]);
+								}
+							}
+							else{
+								events.push(data.events[i]);
+							}
+						else{
 							events.push(data.events[i]);
 						}
 					}
@@ -481,6 +490,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						continue;
 					}
 					
+					showOrHideChildrens(events[i]);
+
 					//Prepare dataValues(find the factor) and store (num*factor) in the event(and show/hide the questions with relations parent/child).
 					prepareDataValuesByEvent(events[i]);
 				
@@ -560,23 +571,25 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 											saveErrorQuestionWithoutCS(question);
 										continue;
 									}
+									//Discard children not visible questions:
+									if(question.isChild!=undefined){
+										if(question.isChild==true && question.parent.isShowed==false){
+											if(debug){
+												if(localCompositeScore.discartedQuestions==undefined){
+													localCompositeScore.discartedQuestions=[];
+												}
+												localCompositeScore.discartedQuestions.push(jQuery.extend({},question));
+											}
+											continue;
+										}
+									}
 
 									//Find the question CompositeScore and add the denominator.
 									for(var x=0;x<programs[i].programStages[d].compositeScores.length;x++){
 										var localCompositeScore=programs[i].programStages[d].compositeScores[x];
 										if(localCompositeScore.hierarchy==question.compositeScore){
 
-											//Discard children not visible questions:
-											if(question.isChild!=undefined && question.isChild==true && question.parent.isShowed==false){
-												if(debug){
-													if(localCompositeScore.discartedQuestions==undefined){
-														localCompositeScore.discartedQuestions=[];
-													}
-													localCompositeScore.discartedQuestions.push(jQuery.extend({},question));
-												}
-												continue;
-											}
-
+											if(question.isChild==undefined || question.isChild==true && question.parent.isShowed==true){
 											if(localCompositeScore.denominator==undefined){
 												//To cast a string to number is necesary: (+value)
 												localCompositeScore.denominator=(+question.denominator);
@@ -591,7 +604,8 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 												}
 												programs[i].programStages[d].compositeScores[x].addedQuestions.push(question);
 											}
-										}											
+											}
+										}								
 									}
 								}
 							}
@@ -660,18 +674,18 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							if(event.dataValues[i].compositeScore!=undefined){
 								if(event.dataValues[i].compositeScore==compositeScores[d].hierarchy){
 										if(compositeScores[d].numerator==undefined)
-											compositeScores[d].numerator=event.dataValues[i].sumFactor;
+											compositeScores[d].numerator=(+event.dataValues[i].sumFactor);
 										else
-											compositeScores[d].numerator+=event.dataValues[i].sumFactor;
+											compositeScores[d].numerator+=(+event.dataValues[i].sumFactor);
 										if(debug){
 											if(compositeScores[d].debugDataValues==undefined){
 												compositeScores[d].debugDataValues=[];
 											}
 											compositeScores[d].debugDataValues.push(jQuery.extend(true,{},event.dataValues[i]));
 											if(compositeScores[d].debugnumerator==undefined)
-												compositeScores[d].debugnumerator=event.dataValues[i].sumFactor;
+												compositeScores[d].debugnumerator=(+event.dataValues[i].sumFactor);
 											else
-												compositeScores[d].debugnumerator+=event.dataValues[i].sumFactor;
+												compositeScores[d].debugnumerator+=(+event.dataValues[i].sumFactor);
 											isSaved=true;
 										}
 									}
@@ -1048,12 +1062,12 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							//Only one page:
 							saveEvents(data);
 							eventsByprogramsDownloaded--;
-							if(eventsByprogramsDownloaded==0){
+							if(eventsByprogramsDownloaded==0 || (debug==true && debugEventFilter!="")){
 								if(events==undefined){
 									$scope.noevents=true;
 									return;			
 								}
-								if(events.length>=totalEvents){
+								if(events.length>=totalEvents  || (debug==true && debugEventFilter!="")){
 									allDownloaded--;
 									if(allDownloaded==0){
 										uploadPrograms();
