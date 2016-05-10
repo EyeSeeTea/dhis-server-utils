@@ -10,7 +10,7 @@
 	"VALIDATION_END_DATE": "End Date required",
 	"INVALID_PROGRAM": "The program is not valid",
 	"UNEXPECTED_ERROR": "Unexpected error",
-	"LOGIN_ERROR": "Error. Are you logged?",
+	"LOGIN_ERROR": "Error. Are you logged-in?",
 	"IN_PROGRESS": "In progress",
 	"DOWNLOADING_DATAELEMENTS": "Retrieving dataelements...",
 	"CALCULATING_SCORES": "Calculating scores...",
