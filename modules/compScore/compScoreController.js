@@ -943,7 +943,6 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 						}
 						else{
 							//If the factor isn't in the DataValue value extracts it from the question optionSet.
-
 							if(question.optionSet==undefined){
 								//if the question don't have optionset discard it.
 								if(debug){
@@ -971,7 +970,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							//try to estract the factor from the option code.
 							for(var x=0;x<optionSet.options.length;x++){
 								//if the value is a option name
-								if(optionSet.options[x].name==dataValue.value){
+								if(optionSet.options[x].code!=undefined && optionSet.options[x].name==dataValue.value){
 								var indexOfFactor=optionSet.options[x].code.indexOf("[");
 								var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
 
@@ -986,7 +985,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 							//try to extract the factor from the option code
 							for(var x=0;x<optionSet.options.length;x++){
 									//If the server save the value as YES [1] and the datavalue as YES
-									if(optionSet.options[x].code.indexOf(dataValue.value)!=-1){
+									if(optionSet.options[x].code!=undefined && optionSet.options[x].code.indexOf(dataValue.value)!=-1){
 										var indexOfFactor=optionSet.options[x].code.indexOf("[");
 										var endOfFactor=optionSet.options[x].code.lastIndexOf("]")
 
