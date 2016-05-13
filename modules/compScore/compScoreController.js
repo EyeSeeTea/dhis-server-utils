@@ -40,7 +40,7 @@ dhisServerUtilsConfig.controller('compScoreController', ["$scope",'$filter', "co
 				var debugEventFilter="";
 				//postEventsRequestLimit is the maximum number of simultaneous POST requests queue
 
-				var postEventsRequestLimit=50;
+				var postEventsRequestLimit=4;
 
 				//SERVER VALUES
 				var SERVER_ATTRIBUTE_UID="IMVz39TtAHM";
