@@ -5,8 +5,8 @@
  * 
  * */
 var Dhis2Api = angular.module("Dhis2Api", ['ngResource']);
-var urlApi"http://localhost:8080/api/";
-var urlBase = http://localhost:8080/";
+var urlApi = "http://localhost:8080/api/";
+var urlBase = "http://localhost:8080/";
 //relative path
 //var urlApi = "../../../api/";
 //var urlBase = "../../../";
