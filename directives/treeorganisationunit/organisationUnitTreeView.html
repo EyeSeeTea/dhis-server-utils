@@ -1,0 +1,19 @@
+<div  ng-controller="d2TreeorganisationUnitController">
+<div class="panel panel-default">
+  <div class="panel-heading">
+		<div style="height: {{size}}; overflow-y:scroll; background-color:#CCCCC; ">
+		 <br>
+			<!-- tree angulas Js -->
+			<div
+			  data-angular-treeview="true"
+			  data-tree-id="OrganisationUnit"
+			  data-tree-model="treeOrganisationUnitList"
+			  data-node-id="id"
+			  data-node-label="name"
+			  data-node-children="children" 
+			  data-tree-type="{{treetype}}">
+			</div>
+		</div>
+	</div>
+	</div>
+</div>

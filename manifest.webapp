@@ -1,0 +1,23 @@
+{
+	"version":"0.1",
+	"name":"DHIS2 Server Utils",
+	"description":"DHIS2 Server Utils",
+	"launch_path":"index.html",
+	"icons":{"16":null,
+	"48":"img/eyeseetea_logo.png",
+	"128":null
+	},
+	"developer":{
+	"url":"",
+	"name":"Adrian Quintana, Ignacio del Cano",
+	"company":"EyeSeeTea Ltd.",
+	"email":"adrian@eyeseetea.com"
+	},
+	"installs_allowed_from":null,
+	"default_locale":"en",
+	"activities": {
+	  "dhis": {
+	  "href": "http://localhost:8080/"
+		}
+	}
+}
